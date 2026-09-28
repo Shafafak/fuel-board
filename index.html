@@ -875,11 +875,11 @@
 
   // First choice: same-origin Vercel serverless function (api/stations.js).
   // Server-to-server calls aren't subject to browser CORS, so this is the
-  // reliable path once deployed. Fails fast (6s) if the function isn't present
-  // (e.g. viewing this page somewhere other than the deployed Vercel site).
+  // reliable path once deployed. Generous timeout (25s) because the function
+  // itself may need real time to get a response from Overpass.
   async function fetchViaProxy(lat, lon, radius) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 6000);
+    const timer = setTimeout(() => controller.abort(), 25000);
     try {
       const res = await fetch("/api/stations?lat=" + lat + "&lon=" + lon + "&radius=" + radius, { signal: controller.signal });
       clearTimeout(timer);
@@ -898,7 +898,7 @@
     let lastErr;
     for (const endpoint of OVERPASS_ENDPOINTS) {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 6000);
+      const timer = setTimeout(() => controller.abort(), 20000);
       try {
         const res = await fetch(endpoint + "?data=" + encodeURIComponent(query), { signal: controller.signal });
         clearTimeout(timer);
@@ -914,7 +914,7 @@
 
   async function fetchRealStations(city) {
     const radius = 15000; // ~9 mi — covers metro area, not just the exact center point
-    const query = "[out:json][timeout:20];(node[\"amenity\"=\"fuel\"](around:" + radius + "," + city.geo.lat + "," + city.geo.lon + ");way[\"amenity\"=\"fuel\"](around:" + radius + "," + city.geo.lat + "," + city.geo.lon + "););out center;";
+    const query = "[out:json][timeout:25];node[\"amenity\"=\"fuel\"](around:" + radius + "," + city.geo.lat + "," + city.geo.lon + ");out center 100;";
 
     let data;
     try {
