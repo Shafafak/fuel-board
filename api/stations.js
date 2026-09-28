@@ -31,7 +31,12 @@ module.exports = async (req, res) => {
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 15000);
-      const upstream = await fetch(endpoint + "?data=" + encodeURIComponent(query), { signal: controller.signal });
+      const upstream = await fetch(endpoint + "?data=" + encodeURIComponent(query), {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "FuelBoardDemo/1.0 (personal project; contact via GitHub repo)"
+        }
+      });
       clearTimeout(timer);
 
       if (!upstream.ok) {
