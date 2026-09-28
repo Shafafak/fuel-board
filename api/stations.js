@@ -22,15 +22,14 @@ module.exports = async (req, res) => {
   }
 
   const query =
-    "[out:json][timeout:20];(node[\"amenity\"=\"fuel\"](around:" + radius + "," + lat + "," + lon + ");" +
-    "way[\"amenity\"=\"fuel\"](around:" + radius + "," + lat + "," + lon + "););out center;";
+    "[out:json][timeout:25];node[\"amenity\"=\"fuel\"](around:" + radius + "," + lat + "," + lon + ");out center 100;";
 
   const errors = [];
 
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15000);
+      const timer = setTimeout(() => controller.abort(), 20000);
       const upstream = await fetch(endpoint + "?data=" + encodeURIComponent(query), {
         signal: controller.signal,
         headers: {
