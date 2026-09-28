@@ -25,7 +25,7 @@ module.exports = async (req, res) => {
     "[out:json][timeout:20];(node[\"amenity\"=\"fuel\"](around:" + radius + "," + lat + "," + lon + ");" +
     "way[\"amenity\"=\"fuel\"](around:" + radius + "," + lat + "," + lon + "););out center;";
 
-  let lastError = null;
+  const errors = [];
 
   for (const endpoint of OVERPASS_ENDPOINTS) {
     try {
@@ -35,7 +35,9 @@ module.exports = async (req, res) => {
       clearTimeout(timer);
 
       if (!upstream.ok) {
-        lastError = endpoint + " returned HTTP " + upstream.status;
+        let bodySnippet = "";
+        try { bodySnippet = (await upstream.text()).slice(0, 200); } catch (_) {}
+        errors.push({ endpoint, status: upstream.status, body: bodySnippet });
         continue;
       }
 
@@ -44,9 +46,13 @@ module.exports = async (req, res) => {
       res.status(200).json(data);
       return;
     } catch (e) {
-      lastError = endpoint + " failed: " + (e && e.message ? e.message : String(e));
+      errors.push({
+        endpoint,
+        message: e && e.message ? e.message : String(e),
+        cause: e && e.cause ? (e.cause.code || e.cause.message || String(e.cause)) : null
+      });
     }
   }
 
-  res.status(502).json({ error: "All Overpass endpoints failed", detail: lastError });
+  res.status(502).json({ error: "All Overpass endpoints failed", attempts: errors });
 };
