@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/stations.js": {
+      "maxDuration": 30
+    }
+  }
+}
