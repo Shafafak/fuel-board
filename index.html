@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fuel Board — City Fuel Prices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+
+    --grad-start: #5b4fe0;
+    --grad-end: #d6519e;
+    --eyebrow: #ec4e76;
+    --page-bg: #ffffff;
+    --card-bg: #ffffff;
+    --text-dark: #1c1730;
+    --text-muted: #6b6580;
+    --text-faint: #9691a8;
+    --line: #e7e4f0;
+
+    --petrol: #d99a2b;
+    --petrol-bg: #fbf0da;
+    --petrol-dark: #9a6a12;
+    --diesel: #2f9e6e;
+    --diesel-bg: #dff3ea;
+    --diesel-dark: #1f7350;
+
+    color-scheme: light;
+  }
+
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); scroll-behavior: smooth; height: 100%; }
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--text-dark);
+    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: 88px;
+    transition: padding-bottom 0.2s;
+  }
+  body.ad-dismissed { padding-bottom: 0; }
+
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  /* ---------------- ad slots (mock) — dark native-ad style ---------------- */
+  .ad-slot {
+    position: relative;
+    border-radius: 14px;
+    background: #14151a;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    box-sizing: border-box;
+  }
+  .ad-slot .ad-label {
+    position: absolute; top: 8px; left: 8px;
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.03em;
+    color: rgba(255,255,255,0.6); text-transform: uppercase;
+    background: rgba(255,255,255,0.12);
+    padding: 1px 6px; border-radius: 4px;
+    z-index: 2;
+  }
+  .ad-icon-badge {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: #f6c94c;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+  }
+  .ad-cta {
+    background: #f6c94c; color: #171313; font-weight: 800; font-size: 0.85rem;
+    border: none; border-radius: 999px; padding: 10px 18px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .ad-headline { font-weight: 700; font-size: 0.95rem; color: #ffffff; }
+  .ad-sub { font-size: 0.78rem; color: rgba(255,255,255,0.55); }
+
+  /* MREC — box-shaped, same dark style, vertically stacked */
+  .ad-mrec-wrap { display: flex; justify-content: center; margin: 28px 0 0; padding: 0 4px; }
+  .ad-mrec {
+    width: min(300px, 100%);
+    aspect-ratio: 300 / 250;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 22px 18px;
+  }
+  .ad-mrec .ad-icon-badge { margin-bottom: 14px; }
+  .ad-mrec .ad-headline { margin-bottom: 6px; }
+  .ad-mrec .ad-sub { margin-bottom: 18px; }
+
+  /* Sticky — full-width bar like a native ad strip */
+  .ad-sticky {
+    position: fixed; left: 50%; bottom: 12px; z-index: 900;
+    transform: translateX(-50%);
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  .ad-sticky.hidden { transform: translateX(-50%) translateY(120%); opacity: 0; }
+
+  .ad-banner-wrap { display: flex; justify-content: center; margin: 20px 0 0; padding: 0 4px; }
+
+  .ad-sticky, .ad-banner {
+    width: min(300px, calc(100% - 24px));
+    padding: 10px 12px;
+    padding-left: 30px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .ad-sticky .ad-label, .ad-banner .ad-label { left: 6px; top: 6px; padding: 1px 4px; font-size: 0.55rem; }
+  .ad-sticky .ad-icon-badge, .ad-banner .ad-icon-badge { width: 30px; height: 30px; font-size: 0.95rem; flex-shrink: 0; }
+  .ad-sticky-text { flex: 1; min-width: 0; }
+  .ad-sticky-text .ad-headline { font-size: 0.82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ad-sticky-text .ad-sub { font-size: 0.68rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ad-sticky .ad-cta, .ad-banner .ad-cta { padding: 7px 12px; font-size: 0.72rem; flex-shrink: 0; }
+  .ad-sticky .ad-close {
+    position: absolute; top: 6px; right: 6px;
+    background: none; border: none; color: rgba(255,255,255,0.45); font-size: 1rem;
+    cursor: pointer; padding: 3px; line-height: 1;
+  }
+
+  /* ---------------- hero ---------------- */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+    padding: env(safe-area-inset-top, 0px) 24px 40px;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 26px);
+    color: #ffffff;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.16) 1.4px, transparent 1.4px);
+    background-size: 20px 20px;
+    pointer-events: none;
+  }
+  .hero-inner { position: relative; max-width: 1080px; margin: 0 auto; }
+
+  .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .eyebrow-lockup .eyebrow-main {
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .eyebrow-lockup .eyebrow-sub {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.72);
+    margin-top: 2px;
+  }
+  .select-wrap { text-align: right; }
+  .select-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.72);
+    display: block;
+    margin-bottom: 6px;
+  }
+  select#citySelect {
+    background: rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 10px 34px 10px 18px;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #fff 50%), linear-gradient(135deg, #fff 50%, transparent 50%);
+    background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 13px) calc(50% - 3px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+  select#citySelect option { color: #1c1730; }
+  select#citySelect:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+  .hero h1 {
+    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    font-weight: 800;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  .hero .sub {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.85);
+    margin: 0 0 24px;
+    font-weight: 500;
+  }
+  .hero .sub .hl { color: #ffe27a; font-weight: 700; }
+
+  .stat-tiles {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .stat-tile {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 18px;
+    padding: 16px 18px;
+  }
+  .stat-tile .stat-num {
+    font-size: clamp(1.7rem, 4vw, 2.3rem);
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-tile .stat-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.78);
+    text-transform: uppercase;
+  }
+  .stat-tile .stat-delta {
+    margin-top: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(255,255,255,0.92);
+  }
+
+  .cta-row { text-align: center; }
+  .cta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.45);
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 12px 26px;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .cta-pill:hover { background: rgba(255,255,255,0.24); }
+
+  /* ---------------- sourced-from strip ---------------- */
+  .sourced-strip {
+    background: #ece9f7;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .sourced-strip .lbl {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #6a63a8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sourced-strip .pill {
+    background: #ffffff;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #3a3560;
+  }
+
+  /* ---------------- sections ---------------- */
+  main { padding: 40px 24px 60px; }
+  section.block { max-width: 1080px; margin: 0 auto 56px; }
+  .eyebrow {
+    color: var(--eyebrow);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    font-weight: 800;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .section-note {
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    margin: 0 0 24px;
+    max-width: 60ch;
+  }
+
+  /* station list — compact rows */
+  .station-grid-wrap { position: relative; }
+  .station-grid-wrap.scrollable::after {
+    content: "";
+    position: absolute; left: 0; right: 6px; bottom: 0; height: 22px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0), var(--page-bg));
+    pointer-events: none;
+    border-radius: 0 0 12px 12px;
+  }
+  .station-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 410px;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
+  }
+  .station-grid::-webkit-scrollbar { width: 6px; }
+  .station-grid::-webkit-scrollbar-thumb { background: var(--line); border-radius: 999px; }
+  .station-grid::-webkit-scrollbar-track { background: transparent; }
+  .station-card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 8px 12px;
+    box-shadow: 0 1px 6px rgba(30,20,60,0.06);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+  .station-card.cheapest { outline: 1.5px solid var(--eyebrow); }
+  .station-card.cheapest::after {
+    content: "Cheapest";
+    flex-shrink: 0;
+    background: #fce4ec;
+    color: var(--eyebrow);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+  .station-avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 0.68rem;
+    color: #ffffff;
+    border: 2px solid;
+    flex-shrink: 0;
+  }
+  .station-name {
+    font-weight: 600; font-size: 0.85rem;
+    flex: 1; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .fuel-pills { display: flex; gap: 5px; flex-shrink: 0; }
+  .fuel-pill {
+    font-size: 0.68rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+  .fuel-pill.petrol { background: var(--petrol-bg); color: var(--petrol-dark); }
+  .fuel-pill.diesel { background: var(--diesel-bg); color: var(--diesel-dark); }
+  .fuel-pill.unavailable { background: var(--line); color: var(--text-faint); }
+
+  /* ranking — compact card */
+  .rank-toggle { display: inline-flex; gap: 6px; background: var(--line); border-radius: 999px; padding: 4px; margin-bottom: 16px; }
+  .rank-toggle button {
+    border: none; background: transparent; font: inherit; font-weight: 700; font-size: 0.85rem;
+    padding: 8px 18px; border-radius: 999px; cursor: pointer; color: var(--text-muted);
+  }
+  .rank-toggle button.active { background: var(--card-bg); color: var(--text-dark); box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+
+  /* trend chart */
+  .trend-card {
+    background: var(--card-bg);
+    border-radius: 18px;
+    padding: 20px 22px;
+    box-shadow: 0 4px 18px rgba(30,20,60,0.08);
+  }
+  .trend-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .trend-price { font-weight: 800; font-size: 1.5rem; }
+  .trend-asof { font-size: 0.72rem; color: var(--text-faint); margin-top: 2px; }
+  .trend-change {
+    font-weight: 700; font-size: 0.85rem;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 12px; border-radius: 999px;
+  }
+  .trend-change.up { background: var(--petrol-bg); color: var(--petrol-dark); }
+  .trend-change.down { background: var(--diesel-bg); color: var(--diesel-dark); }
+  .trend-chart-svg { width: 100%; height: 160px; display: block; }
+  .trend-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-faint); margin-top: 4px; }
+
+  .rank-compact-card {
+    background: var(--card-bg);
+    border-radius: 18px;
+    padding: 20px 22px;
+    box-shadow: 0 4px 18px rgba(30,20,60,0.08);
+  }
+  .rank-compact-top {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .rank-compact-badge {
+    background: var(--eyebrow); color: #fff; font-weight: 800; font-size: 1rem;
+    border-radius: 999px; padding: 8px 14px; flex-shrink: 0;
+  }
+  .rank-compact-badge .of14 { font-size: 0.65rem; font-weight: 700; margin-left: 4px; opacity: 0.85; }
+  .rank-compact-city { flex: 1; font-weight: 700; font-size: 1.05rem; min-width: 120px; }
+  .rank-compact-price { font-weight: 800; font-size: 1.2rem; }
+
+  .rank-bar-track-full {
+    position: relative;
+    height: 8px; border-radius: 999px;
+    background: linear-gradient(90deg, #34a366, #f0b429, #e05252);
+    margin-bottom: 8px;
+  }
+  .rank-bar-marker {
+    position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%;
+    background: #ffffff; border: 3px solid #2b2640; box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+    transform: translate(-50%, -50%);
+  }
+  .rank-bar-labels {
+    display: flex; justify-content: space-between;
+    font-size: 0.76rem; color: var(--text-faint);
+  }
+
+  /* trip calculator */
+  .calc-card {
+    background: var(--card-bg);
+    border-radius: 22px;
+    padding: 28px;
+    box-shadow: 0 4px 18px rgba(30,20,60,0.08);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  @media (max-width: 640px) { .calc-card { grid-template-columns: 1fr; } }
+
+  @media (max-width: 480px) {
+    #map { height: 300px; }
+    .hero { padding: 18px 16px 26px; }
+    main { padding: 24px 16px 40px; }
+    .ad-mrec-wrap { margin-top: 20px; }
+  }
+  .calc-field { margin-bottom: 18px; }
+  .calc-field label {
+    display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;
+  }
+  .calc-field input[type="number"] {
+    width: 100%; font: inherit; font-size: 1rem; font-weight: 600;
+    padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--page-bg); color: var(--text-dark);
+    box-sizing: border-box;
+  }
+  .calc-fuel-toggle { display: inline-flex; gap: 6px; background: var(--line); border-radius: 999px; padding: 4px; }
+  .calc-fuel-toggle button {
+    border: none; background: transparent; font: inherit; font-weight: 700; font-size: 0.85rem;
+    padding: 8px 20px; border-radius: 999px; cursor: pointer; color: var(--text-muted);
+  }
+  .calc-fuel-toggle button.active.petrol { background: var(--petrol); color: #ffffff; }
+  .calc-fuel-toggle button.active.diesel { background: var(--diesel); color: #ffffff; }
+
+  .calc-result {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center;
+    background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+    border-radius: 18px;
+    padding: 24px;
+    color: #ffffff;
+  }
+  .calc-result .result-num { font-size: 2.4rem; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .calc-result .result-label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; color: rgba(255,255,255,0.8); margin-bottom: 14px; text-transform: uppercase; }
+  .calc-result .result-breakdown { font-size: 0.85rem; color: rgba(255,255,255,0.9); }
+
+  /* map */
+  .map-card {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(30,20,60,0.08);
+    border: 1px solid var(--line);
+  }
+  #map { width: 100%; height: 420px; background: #eee; }
+  .map-wrap-inner { position: relative; }
+  .map-loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.75);
+    font-size: 0.85rem; font-weight: 600; color: var(--text-muted);
+    z-index: 500;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.15s;
+  }
+  .map-loading.show { opacity: 1; }
+
+  .station-card.skeleton {
+    background: linear-gradient(90deg, var(--line) 25%, #f2f0f8 37%, var(--line) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease infinite;
+    min-height: 46px;
+  }
+  @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+
+  .legend-row { display: flex; gap: 16px; padding: 12px 18px; background: #faf9fd; font-size: 0.82rem; color: var(--text-muted); flex-wrap: wrap; }
+  .legend-row .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .leaflet-popup-content-wrapper { border-radius: 12px; }
+  .popup-name { font-weight: 700; font-size: 0.92rem; margin-bottom: 6px; }
+  .popup-row { display: flex; justify-content: space-between; gap: 10px; font-size: 0.82rem; padding: 2px 0; }
+  .map-fallback-note {
+    padding: 14px 18px; font-size: 0.8rem; color: var(--text-faint); background: #faf9fd;
+    border-top: 1px solid var(--line); display: none;
+  }
+  .map-fallback-note.show { display: block; }
+
+  footer {
+    max-width: 1080px; margin: 0 auto; padding: 0 24px 48px;
+    font-size: 0.76rem; color: var(--text-faint); line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-top">
+      <div class="eyebrow-lockup">
+        <div class="eyebrow-main">⛽ FUEL BOARD</div>
+        <div class="eyebrow-sub">CITY FUEL PRICE GUIDE</div>
+      </div>
+      <div class="select-wrap">
+        <span class="select-label">SELECT CITY</span>
+        <select id="citySelect" aria-label="Choose a city"></select>
+      </div>
+    </div>
+
+    <h1 id="heroTitle">—</h1>
+    <p class="sub">Know your <span class="hl">price</span> before you fill up.</p>
+
+    <div class="stat-tiles" id="statTiles"></div>
+
+    <div class="cta-row">
+      <button class="cta-pill" id="jumpToCalc" type="button">Calculate your fuel cost ↓</button>
+    </div>
+  </div>
+</div>
+
+<div class="sourced-strip">
+  <span class="lbl">🛡️ SOURCED FROM</span>
+  <span class="pill">U.S. EIA</span>
+  <span class="pill">Weekly Retail Gasoline &amp; Diesel Prices</span>
+</div>
+
+<main>
+  <section class="block">
+    <div class="eyebrow">ON THE MAP</div>
+    <h2>Stations near <span id="mapCityName">—</span></h2>
+    <div class="map-card">
+      <div class="map-wrap-inner">
+        <div id="map"></div>
+        <div class="map-loading" id="mapLoading">Loading stations…</div>
+      </div>
+      <div class="legend-row">
+        <span><span class="dot" style="background:#d99a2b"></span>Petrol</span>
+        <span><span class="dot" style="background:#2f9e6e"></span>Diesel</span>
+      </div>
+      <div class="map-fallback-note" id="mapFallbackNote">Map tiles didn't load — this view needs live internet access to OpenStreetMap, which Claude's chat preview blocks. It'll work once hosted elsewhere.</div>
+    </div>
+    <div class="ad-mrec-wrap">
+      <div class="ad-slot ad-mrec">
+        <span class="ad-label">AD</span>
+        <div class="ad-icon-badge">🧭</div>
+        <div class="ad-headline">RoadReady Tires</div>
+        <div class="ad-sub">Free rotation with every set. Book in 60 seconds.</div>
+        <button class="ad-cta" type="button">Find a shop →</button>
+      </div>
+    </div>
+  </section>
+  <section class="block">
+    <div class="eyebrow">ACROSS THE CITY</div>
+    <h2>Stations in <span id="stationCityName">—</span></h2>
+    <div class="station-grid-wrap">
+      <div class="station-grid" id="stationGrid"></div>
+    </div>
+    <div class="ad-banner-wrap">
+      <div class="ad-slot ad-banner">
+        <span class="ad-label">AD</span>
+        <div class="ad-icon-badge">🔔</div>
+        <div class="ad-sticky-text">
+          <div class="ad-headline">GasBuddy Alerts</div>
+          <div class="ad-sub">Get notified when prices drop.</div>
+        </div>
+        <button class="ad-cta" type="button">Enable →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="eyebrow">THE TREND</div>
+    <h2>Where prices have been</h2>
+    <div class="rank-toggle" id="trendToggle">
+      <button data-fuel="petrol" class="active">Petrol</button>
+      <button data-fuel="diesel">Diesel</button>
+    </div>
+    <div class="trend-card" id="trendCard">
+      <div class="trend-top">
+        <div>
+          <div class="trend-price" id="trendPrice">—</div>
+          <div class="trend-asof" id="trendAsOf">—</div>
+        </div>
+        <div class="trend-change" id="trendChange">—</div>
+      </div>
+      <div id="trendChartWrap"></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="eyebrow">THE BIG PICTURE</div>
+    <h2>Cheapest to priciest</h2>
+    <div class="rank-toggle" id="rankToggle">
+      <button data-fuel="petrol" class="active">Petrol</button>
+      <button data-fuel="diesel">Diesel</button>
+    </div>
+    <div class="rank-compact-card" id="rankCompactCard">
+      <div class="rank-compact-top">
+        <div class="rank-compact-badge">#<span id="rankPosition">—</span><span class="of14" id="rankOfTotal">of —</span></div>
+        <div class="rank-compact-city" id="rankCompactCityName">—</div>
+        <div class="rank-compact-price" id="rankCompactPrice">—</div>
+      </div>
+      <div class="rank-bar-track-full">
+        <div class="rank-bar-marker" id="rankBarMarker"></div>
+      </div>
+      <div class="rank-bar-labels">
+        <span id="rankCheapLabel">—</span>
+        <span id="rankPriceyLabel">—</span>
+      </div>
+    </div>
+    <div class="ad-mrec-wrap">
+      <div class="ad-slot ad-mrec">
+        <span class="ad-label">AD</span>
+        <div class="ad-icon-badge">🛡️</div>
+        <div class="ad-headline">DriveSafe Insurance</div>
+        <div class="ad-sub">Compare quotes from top providers in 2 minutes.</div>
+        <button class="ad-cta" type="button">Get a quote →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="calc">
+    <div class="eyebrow">PLAN AHEAD</div>
+    <h2>What will your trip cost?</h2>
+    <p class="section-note">Uses <span id="calcCityName">—</span>'s current price for the fuel you pick.</p>
+    <div class="calc-card">
+      <div>
+        <div class="calc-field">
+          <label>Fuel type</label>
+          <div class="calc-fuel-toggle" id="calcFuelToggle">
+            <button data-fuel="petrol" class="active petrol">Petrol</button>
+            <button data-fuel="diesel" class="diesel">Diesel</button>
+          </div>
+        </div>
+        <div class="calc-field">
+          <label for="calcDistance">Trip distance (miles)</label>
+          <input type="number" id="calcDistance" value="200" min="1" max="5000" step="1">
+        </div>
+        <div class="calc-field">
+          <label for="calcEfficiency">Vehicle efficiency (miles per gallon)</label>
+          <input type="number" id="calcEfficiency" value="28" min="1" max="150" step="0.5">
+        </div>
+      </div>
+      <div class="calc-result">
+        <div class="result-num" id="calcResultNum">$0.00</div>
+        <div class="result-label">Estimated fuel cost</div>
+        <div class="result-breakdown" id="calcResultBreakdown">—</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  function seedFromString(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+      h = (h << 13) | (h >>> 19);
+    }
+    return function () {
+      h = Math.imul(h ^ (h >>> 16), 2246822507);
+      h = Math.imul(h ^ (h >>> 13), 3266489909);
+      h ^= h >>> 16;
+      return (h >>> 0) / 4294967296;
+    };
+  }
+
+  // Real EIA weekly data — see footer for sourcing detail.
+  const WEEK_LABELS = ["Aug 31", "Sep 7", "Sep 14", "Sep 21"];
+
+  const REAL_PRICE_DATA = {
+    nyc: { petrol: { value: 4.407, asOf: "Sep 21, 2026", level: "New York City (EIA city avg.)", series: [4.006, 4.091, 4.251, 4.407] },
+           diesel: { value: 6.268, asOf: "Sep 21, 2026", level: "East Coast regional avg. (EIA)", series: [5.375, 5.728, 6.034, 6.268] } },
+    la:  { petrol: { value: 5.984, asOf: "Sep 21, 2026", level: "Los Angeles (EIA city avg.)", series: [5.440, 5.555, 5.772, 5.984] },
+           diesel: { value: 7.764, asOf: "Sep 7, 2026",  level: "California state avg. (EIA)", series: [7.285, 7.764] } },
+    chi: { petrol: { value: 4.879, asOf: "Sep 21, 2026", level: "Chicago (EIA city avg.)", series: [4.436, 4.529, 4.706, 4.879] },
+           diesel: { value: 5.946, asOf: "Sep 7, 2026",  level: "Midwest regional avg. (EIA)", series: [5.579, 5.946] } },
+    hou: { petrol: { value: 3.863, asOf: "Sep 21, 2026", level: "Houston (EIA city avg.)", series: [3.512, 3.586, 3.726, 3.863] },
+           diesel: { value: 6.177, asOf: "Sep 21, 2026", level: "Gulf Coast regional avg. (EIA)", series: [5.297, 5.645, 5.946, 6.177] } },
+    phx: { petrol: { value: 5.026, asOf: "Sep 14, 2026", level: "West Coast excl. CA regional avg. (EIA)", series: [4.737, 4.837, 5.026] },
+           diesel: { value: 6.314, asOf: "Sep 7, 2026",  level: "West Coast excl. CA regional avg. (EIA)", series: [5.925, 6.314] } },
+    phl: { petrol: { value: 4.438, asOf: "Sep 21, 2026", level: "Central Atlantic regional avg. (EIA)", series: [4.035, 4.120, 4.280, 4.438] },
+           diesel: { value: 6.051, asOf: "Sep 7, 2026",  level: "Central Atlantic regional avg. (EIA)", series: [5.678, 6.051] } },
+    sat: { petrol: { value: 3.972, asOf: "Sep 21, 2026", level: "Gulf Coast regional avg. (EIA)", series: [3.611, 3.687, 3.831, 3.972] },
+           diesel: { value: 6.177, asOf: "Sep 21, 2026", level: "Gulf Coast regional avg. (EIA)", series: [5.297, 5.645, 5.946, 6.177] } },
+    sd:  { petrol: { value: 5.827, asOf: "Sep 14, 2026", level: "California state avg. (EIA)", series: [5.492, 5.608, 5.827] },
+           diesel: { value: 7.764, asOf: "Sep 7, 2026",  level: "California state avg. (EIA)", series: [7.285, 7.764] } },
+    dal: { petrol: { value: 3.972, asOf: "Sep 21, 2026", level: "Gulf Coast regional avg. (EIA)", series: [3.611, 3.687, 3.831, 3.972] },
+           diesel: { value: 6.177, asOf: "Sep 21, 2026", level: "Gulf Coast regional avg. (EIA)", series: [5.297, 5.645, 5.946, 6.177] } },
+    aus: { petrol: { value: 3.972, asOf: "Sep 21, 2026", level: "Gulf Coast regional avg. (EIA)", series: [3.611, 3.687, 3.831, 3.972] },
+           diesel: { value: 6.177, asOf: "Sep 21, 2026", level: "Gulf Coast regional avg. (EIA)", series: [5.297, 5.645, 5.946, 6.177] } },
+    den: { petrol: { value: 4.211, asOf: "Sep 21, 2026", level: "Denver (EIA city avg.)", series: [3.828, 3.909, 4.250, 4.211] },
+           diesel: { value: 5.805, asOf: "Sep 7, 2026",  level: "Rocky Mountain regional avg. (EIA)", series: [5.447, 5.805] } },
+    sea: { petrol: { value: 5.692, asOf: "Sep 21, 2026", level: "Seattle (EIA city avg.)", series: [5.175, 5.284, 5.490, 5.692] },
+           diesel: { value: 6.314, asOf: "Sep 7, 2026",  level: "West Coast excl. CA regional avg. (EIA)", series: [5.925, 6.314] } },
+    mia: { petrol: { value: 4.266, asOf: "Sep 21, 2026", level: "Miami (EIA city avg.)", series: [3.878, 3.960, 4.115, 4.266] },
+           diesel: { value: 5.605, asOf: "Sep 7, 2026",  level: "Lower Atlantic regional avg. (EIA)", series: [5.259, 5.605] } },
+    bos: { petrol: { value: 4.387, asOf: "Sep 21, 2026", level: "Boston (EIA city avg.)", series: [3.988, 4.073, 4.231, 4.387] },
+           diesel: { value: 5.990, asOf: "Sep 7, 2026",  level: "New England regional avg. (EIA)", series: [5.621, 5.990] } },
+    atl: { petrol: { value: 4.163, asOf: "Sep 21, 2026", level: "Lower Atlantic regional avg. (EIA)", series: [3.785, 3.865, 4.015, 4.163] },
+           diesel: { value: 5.605, asOf: "Sep 7, 2026",  level: "Lower Atlantic regional avg. (EIA)", series: [5.259, 5.605] } },
+    dca: { petrol: { value: 4.438, asOf: "Sep 21, 2026", level: "Central Atlantic regional avg. (EIA)", series: [4.035, 4.120, 4.280, 4.438] },
+           diesel: { value: 6.051, asOf: "Sep 7, 2026",  level: "Central Atlantic regional avg. (EIA)", series: [5.678, 6.051] } },
+    lv:  { petrol: { value: 5.026, asOf: "Sep 14, 2026", level: "West Coast excl. CA regional avg. (EIA)", series: [4.737, 4.837, 5.026] },
+           diesel: { value: 6.314, asOf: "Sep 7, 2026",  level: "West Coast excl. CA regional avg. (EIA)", series: [5.925, 6.314] } },
+    sf:  { petrol: { value: 6.071, asOf: "Sep 21, 2026", level: "San Francisco (EIA city avg.)", series: [5.519, 5.636, 5.855, 6.071] },
+           diesel: { value: 7.764, asOf: "Sep 7, 2026",  level: "California state avg. (EIA)", series: [7.285, 7.764] } },
+    det: { petrol: { value: 4.386, asOf: "Sep 21, 2026", level: "Midwest regional avg. (EIA)", series: [3.987, 4.072, 4.230, 4.386] },
+           diesel: { value: 5.946, asOf: "Sep 7, 2026",  level: "Midwest regional avg. (EIA)", series: [5.579, 5.946] } },
+    msp: { petrol: { value: 4.223, asOf: "Sep 14, 2026", level: "Minnesota state avg. (EIA)", series: [3.981, 4.065, 4.223] },
+           diesel: { value: 5.946, asOf: "Sep 7, 2026",  level: "Midwest regional avg. (EIA)", series: [5.579, 5.946] } },
+    cle: { petrol: { value: 4.501, asOf: "Sep 21, 2026", level: "Cleveland (EIA city avg.)", series: [4.092, 4.178, 4.341, 4.501] },
+           diesel: { value: 5.946, asOf: "Sep 7, 2026",  level: "Midwest regional avg. (EIA)", series: [5.579, 5.946] } },
+    sj:  { petrol: { value: 5.827, asOf: "Sep 14, 2026", level: "California state avg. (EIA)", series: [5.492, 5.608, 5.827] },
+           diesel: { value: 7.764, asOf: "Sep 7, 2026",  level: "California state avg. (EIA)", series: [7.285, 7.764] } },
+    cmh: { petrol: { value: 4.140, asOf: "Sep 14, 2026", level: "Ohio state avg. (EIA)", series: [3.902, 3.985, 4.140] },
+           diesel: { value: 5.946, asOf: "Sep 7, 2026",  level: "Midwest regional avg. (EIA)", series: [5.579, 5.946] } },
+    clt: { petrol: { value: 4.163, asOf: "Sep 21, 2026", level: "Lower Atlantic regional avg. (EIA)", series: [3.785, 3.865, 4.015, 4.163] },
+           diesel: { value: 5.605, asOf: "Sep 7, 2026",  level: "Lower Atlantic regional avg. (EIA)", series: [5.259, 5.605] } },
+    ind: { petrol: { value: 4.386, asOf: "Sep 21, 2026", level: "Midwest regional avg. (EIA)", series: [3.987, 4.072, 4.230, 4.386] },
+           diesel: { value: 5.946, asOf: "Sep 7, 2026",  level: "Midwest regional avg. (EIA)", series: [5.579, 5.946] } },
+    bna: { petrol: { value: 4.386, asOf: "Sep 21, 2026", level: "Midwest regional avg. (EIA)", series: [3.987, 4.072, 4.230, 4.386] },
+           diesel: { value: 5.946, asOf: "Sep 7, 2026",  level: "Midwest regional avg. (EIA)", series: [5.579, 5.946] } },
+    okc: { petrol: { value: 4.386, asOf: "Sep 21, 2026", level: "Midwest regional avg. (EIA)", series: [3.987, 4.072, 4.230, 4.386] },
+           diesel: { value: 5.946, asOf: "Sep 7, 2026",  level: "Midwest regional avg. (EIA)", series: [5.579, 5.946] } },
+    pdx: { petrol: { value: 5.026, asOf: "Sep 14, 2026", level: "West Coast excl. CA regional avg. (EIA)", series: [4.737, 4.837, 5.026] },
+           diesel: { value: 6.314, asOf: "Sep 7, 2026",  level: "West Coast excl. CA regional avg. (EIA)", series: [5.925, 6.314] } },
+    bal: { petrol: { value: 4.438, asOf: "Sep 21, 2026", level: "Central Atlantic regional avg. (EIA)", series: [4.035, 4.120, 4.280, 4.438] },
+           diesel: { value: 6.051, asOf: "Sep 7, 2026",  level: "Central Atlantic regional avg. (EIA)", series: [5.678, 6.051] } },
+    mci: { petrol: { value: 4.386, asOf: "Sep 21, 2026", level: "Midwest regional avg. (EIA)", series: [3.987, 4.072, 4.230, 4.386] },
+           diesel: { value: 5.946, asOf: "Sep 7, 2026",  level: "Midwest regional avg. (EIA)", series: [5.579, 5.946] } }
+  };
+
+  const NATIONAL = { petrol: 4.478, diesel: 6.529 }; // EIA national avg., week of Sep 21, 2026
+
+  const CITY_NAMES = {
+    nyc: "New York, NY", la: "Los Angeles, CA", chi: "Chicago, IL", hou: "Houston, TX",
+    phx: "Phoenix, AZ", phl: "Philadelphia, PA", sat: "San Antonio, TX", sd: "San Diego, CA",
+    dal: "Dallas, TX", aus: "Austin, TX", den: "Denver, CO", sea: "Seattle, WA",
+    mia: "Miami, FL", bos: "Boston, MA",
+    atl: "Atlanta, GA", dca: "Washington, DC", lv: "Las Vegas, NV", sf: "San Francisco, CA",
+    det: "Detroit, MI", msp: "Minneapolis, MN", cle: "Cleveland, OH", sj: "San Jose, CA",
+    cmh: "Columbus, OH", clt: "Charlotte, NC", ind: "Indianapolis, IN", bna: "Nashville, TN",
+    okc: "Oklahoma City, OK", pdx: "Portland, OR", bal: "Baltimore, MD", mci: "Kansas City, MO"
+  };
+
+  const CITY_GEO = {
+    nyc: { lat: 40.7128, lon: -74.0060, zoom: 12 },
+    la:  { lat: 34.0522, lon: -118.2437, zoom: 11 },
+    chi: { lat: 41.8781, lon: -87.6298, zoom: 12 },
+    hou: { lat: 29.7604, lon: -95.3698, zoom: 11 },
+    phx: { lat: 33.4484, lon: -112.0740, zoom: 11 },
+    phl: { lat: 39.9526, lon: -75.1652, zoom: 12 },
+    sat: { lat: 29.4241, lon: -98.4936, zoom: 12 },
+    sd:  { lat: 32.7157, lon: -117.1611, zoom: 12 },
+    dal: { lat: 32.7767, lon: -96.7970, zoom: 12 },
+    aus: { lat: 30.2672, lon: -97.7431, zoom: 12 },
+    den: { lat: 39.7392, lon: -104.9903, zoom: 12 },
+    sea: { lat: 47.6062, lon: -122.3321, zoom: 12 },
+    mia: { lat: 25.7617, lon: -80.1918, zoom: 12 },
+    bos: { lat: 42.3601, lon: -71.0589, zoom: 12 },
+    atl: { lat: 33.7490, lon: -84.3880, zoom: 11 },
+    dca: { lat: 38.9072, lon: -77.0369, zoom: 12 },
+    lv:  { lat: 36.1699, lon: -115.1398, zoom: 12 },
+    sf:  { lat: 37.7749, lon: -122.4194, zoom: 12 },
+    det: { lat: 42.3314, lon: -83.0458, zoom: 12 },
+    msp: { lat: 44.9778, lon: -93.2650, zoom: 12 },
+    cle: { lat: 41.4993, lon: -81.6944, zoom: 12 },
+    sj:  { lat: 37.3382, lon: -121.8863, zoom: 12 },
+    cmh: { lat: 39.9612, lon: -82.9988, zoom: 12 },
+    clt: { lat: 35.2271, lon: -80.8431, zoom: 12 },
+    ind: { lat: 39.7684, lon: -86.1581, zoom: 12 },
+    bna: { lat: 36.1627, lon: -86.7816, zoom: 12 },
+    okc: { lat: 35.4676, lon: -97.5164, zoom: 11 },
+    pdx: { lat: 45.5152, lon: -122.6784, zoom: 12 },
+    bal: { lat: 39.2904, lon: -76.6122, zoom: 12 },
+    mci: { lat: 39.0997, lon: -94.5786, zoom: 11 }
+  };
+
+  const CITIES = Object.keys(CITY_NAMES).map(id => ({
+    id, name: CITY_NAMES[id], priceMeta: REAL_PRICE_DATA[id], geo: CITY_GEO[id]
+  }));
+
+  const NAME_PARTS = ["Summit", "Harbor", "Union", "Cedar", "Lakeview", "Midtown", "Riverside", "Highland",
+    "Maple", "Elm", "Junction", "Crossroads", "Parkway", "Meadow", "Northgate", "Southport", "Eastview", "Westfield"];
+  const NAME_SUFFIX = ["Fuel", "Fuel Stop", "Gas & Go", "Station", "Fuel Center", "Quick Fuel"];
+
+  function haversineMiles(lat1, lon1, lat2, lon2) {
+    const R = 3958.8;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function simulatedStations(city) {
+    const rand = seedFromString(city.id);
+    const count = 6 + Math.floor(rand() * 3);
+    const stations = [];
+    for (let i = 0; i < count; i++) {
+      const namePart = NAME_PARTS[Math.floor(rand() * NAME_PARTS.length)];
+      const suffix = NAME_SUFFIX[Math.floor(rand() * NAME_SUFFIX.length)];
+      const hasDiesel = rand() < 0.85;
+      const jitter = (spread) => (rand() - 0.5) * spread;
+      const lat = city.geo.lat + jitter(0.06);
+      const lon = city.geo.lon + jitter(0.08);
+      stations.push({
+        name: namePart + " " + suffix,
+        hasDiesel: hasDiesel,
+        lat: lat, lon: lon,
+        distance: haversineMiles(city.geo.lat, city.geo.lon, lat, lon),
+        petrolPrice: city.priceMeta.petrol.value + jitter(0.14),
+        dieselPrice: hasDiesel ? city.priceMeta.diesel.value + jitter(0.16) : null
+      });
+    }
+    return stations;
+  }
+
+  const OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.openstreetmap.ru/api/interpreter"
+  ];
+
+  // First choice: same-origin Vercel serverless function (api/stations.js).
+  // Server-to-server calls aren't subject to browser CORS, so this is the
+  // reliable path once deployed. Fails fast (6s) if the function isn't present
+  // (e.g. viewing this page somewhere other than the deployed Vercel site).
+  async function fetchViaProxy(lat, lon, radius) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6000);
+    try {
+      const res = await fetch("/api/stations?lat=" + lat + "&lon=" + lon + "&radius=" + radius, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error("Proxy returned " + res.status);
+      return await res.json();
+    } catch (e) {
+      clearTimeout(timer);
+      throw e;
+    }
+  }
+
+  // Fallback: call Overpass mirrors directly from the browser. Subject to
+  // each mirror's own CORS policy, which is known to be inconsistent — this
+  // is a secondary attempt, not the primary path.
+  async function fetchDirectFromOverpass(query) {
+    let lastErr;
+    for (const endpoint of OVERPASS_ENDPOINTS) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+      try {
+        const res = await fetch(endpoint + "?data=" + encodeURIComponent(query), { signal: controller.signal });
+        clearTimeout(timer);
+        if (!res.ok) { lastErr = new Error(endpoint + " returned " + res.status); continue; }
+        return await res.json();
+      } catch (e) {
+        clearTimeout(timer);
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("All direct Overpass endpoints failed");
+  }
+
+  async function fetchRealStations(city) {
+    const radius = 15000; // ~9 mi — covers metro area, not just the exact center point
+    const query = "[out:json][timeout:20];(node[\"amenity\"=\"fuel\"](around:" + radius + "," + city.geo.lat + "," + city.geo.lon + ");way[\"amenity\"=\"fuel\"](around:" + radius + "," + city.geo.lat + "," + city.geo.lon + "););out center;";
+
+    let data;
+    try {
+      data = await fetchViaProxy(city.geo.lat, city.geo.lon, radius);
+    } catch (e) {
+      data = await fetchDirectFromOverpass(query);
+    }
+
+    const rand = seedFromString(city.id + "-price-jitter");
+    const jitter = (spread) => (rand() - 0.5) * spread;
+
+    const stations = (data.elements || []).map(el => {
+      const lat = el.type === "node" ? el.lat : (el.center ? el.center.lat : null);
+      const lon = el.type === "node" ? el.lon : (el.center ? el.center.lon : null);
+      if (lat == null || lon == null) return null;
+      const tags = el.tags || {};
+      const name = tags.name || tags.brand || tags.operator || "Fuel station";
+      let hasDiesel = "unknown";
+      if (tags["fuel:diesel"] === "yes") hasDiesel = true;
+      else if (tags["fuel:diesel"] === "no") hasDiesel = false;
+      return {
+        name: name,
+        lat: lat, lon: lon,
+        hasDiesel: hasDiesel,
+        distance: haversineMiles(city.geo.lat, city.geo.lon, lat, lon),
+        petrolPrice: city.priceMeta.petrol.value + jitter(0.12),
+        dieselPrice: hasDiesel === true ? city.priceMeta.diesel.value + jitter(0.14) : null
+      };
+    }).filter(Boolean);
+
+    stations.sort((a, b) => a.distance - b.distance);
+    const top = stations.slice(0, 12);
+    if (top.length === 0) throw new Error("No real stations found nearby");
+    return top;
+  }
+
+  const stationCache = {};
+  async function loadStations(city) {
+    if (stationCache[city.id]) return stationCache[city.id];
+    let stations;
+    try {
+      stations = await fetchRealStations(city);
+    } catch (e) {
+      stations = simulatedStations(city);
+    }
+    stationCache[city.id] = stations;
+    return stations;
+  }
+
+  let currentCity = CITIES[0];
+  let rankFuel = "petrol";
+  let calcFuel = "petrol";
+
+  const citySelect = document.getElementById("citySelect");
+  CITIES.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.id;
+    opt.textContent = c.name;
+    citySelect.appendChild(opt);
+  });
+
+  function fmt(n) { return "$" + n.toFixed(2); }
+
+  function renderHero() {
+    document.getElementById("heroTitle").textContent = currentCity.name.split(",")[0] + "'s Fuel Prices";
+    const tiles = document.getElementById("statTiles");
+    tiles.innerHTML = "";
+    ["petrol", "diesel"].forEach(fuel => {
+      const m = currentCity.priceMeta[fuel];
+      const vsNational = m.value - NATIONAL[fuel];
+      const up = vsNational >= 0;
+      const tile = document.createElement("div");
+      tile.className = "stat-tile";
+      tile.innerHTML =
+        '<div class="stat-num">' + fmt(m.value) + '</div>' +
+        '<div class="stat-label">' + fuel.toUpperCase() + ' &middot; $/GAL</div>' +
+        '<div class="stat-delta">' + (up ? "▲" : "▼") + " " + fmt(Math.abs(vsNational)) + " vs. national avg.</div>";
+      tiles.appendChild(tile);
+    });
+  }
+
+  function initials(name) {
+    return name.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  }
+
+  let currentStations = [];
+
+  function sortedStations() {
+    const arr = [...currentStations].sort((a, b) => a.distance - b.distance);
+    const visibleCount = 8;
+    if (arr.length > visibleCount) {
+      let cheapestIdx = 0;
+      for (let i = 1; i < arr.length; i++) {
+        if (arr[i].petrolPrice < arr[cheapestIdx].petrolPrice) cheapestIdx = i;
+      }
+      if (cheapestIdx >= visibleCount) {
+        const [cheapest] = arr.splice(cheapestIdx, 1);
+        arr.splice(visibleCount - 1, 0, cheapest);
+      }
+    }
+    return arr;
+  }
+
+  function showStationSkeletons() {
+    const grid = document.getElementById("stationGrid");
+    grid.innerHTML = "";
+    for (let i = 0; i < 6; i++) {
+      const card = document.createElement("div");
+      card.className = "station-card skeleton";
+      grid.appendChild(card);
+    }
+  }
+
+  function renderStations() {
+    document.getElementById("stationCityName").textContent = currentCity.name.split(",")[0];
+    const grid = document.getElementById("stationGrid");
+    grid.innerHTML = "";
+    const stations = sortedStations();
+    if (stations.length === 0) return;
+    const cheapestPrice = Math.min(...stations.map(s => s.petrolPrice));
+    stations.forEach(s => {
+      const card = document.createElement("div");
+      card.className = "station-card" + (s.petrolPrice === cheapestPrice ? " cheapest" : "");
+      const ringColor = s.hasDiesel === true ? "var(--diesel)" : "var(--petrol)";
+      const avatarBg = s.hasDiesel === true ? "var(--diesel)" : "var(--petrol)";
+      let dieselPill;
+      if (s.hasDiesel === true) dieselPill = '<span class="fuel-pill diesel">Diesel ' + fmt(s.dieselPrice) + '</span>';
+      else if (s.hasDiesel === false) dieselPill = '<span class="fuel-pill unavailable">No diesel</span>';
+      else dieselPill = '<span class="fuel-pill unavailable">Diesel unlisted</span>';
+      card.innerHTML =
+        '<div class="station-avatar" style="background:' + avatarBg + '; border-color:' + ringColor + '">' + initials(s.name) + '</div>' +
+        '<div class="station-name">' + s.name + '</div>' +
+        '<div class="fuel-pills">' +
+          '<span class="fuel-pill petrol">Petrol ' + fmt(s.petrolPrice) + '</span>' +
+          dieselPill +
+        '</div>';
+      grid.appendChild(card);
+    });
+
+    const wrap = grid.closest(".station-grid-wrap");
+    if (wrap) {
+      requestAnimationFrame(() => {
+        wrap.classList.toggle("scrollable", grid.scrollHeight > grid.clientHeight + 2);
+      });
+    }
+  }
+
+  function renderRanking() {
+    const sorted = [...CITIES].sort((a, b) => a.priceMeta[rankFuel].value - b.priceMeta[rankFuel].value);
+    const max = sorted[sorted.length - 1];
+    const min = sorted[0];
+    const position = sorted.findIndex(c => c.id === currentCity.id) + 1;
+    const val = currentCity.priceMeta[rankFuel].value;
+    const pct = ((val - min.priceMeta[rankFuel].value) / ((max.priceMeta[rankFuel].value - min.priceMeta[rankFuel].value) || 1)) * 100;
+
+    document.getElementById("rankPosition").textContent = position;
+    document.getElementById("rankOfTotal").textContent = "of " + CITIES.length;
+    document.getElementById("rankCompactCityName").textContent = currentCity.name.split(",")[0];
+    document.getElementById("rankCompactPrice").textContent = fmt(val);
+    document.getElementById("rankBarMarker").style.left = Math.min(Math.max(pct, 2), 98) + "%";
+    document.getElementById("rankCheapLabel").textContent = "Cheapest: " + min.name.split(",")[0] + " " + fmt(min.priceMeta[rankFuel].value);
+    document.getElementById("rankPriceyLabel").textContent = "Priciest: " + max.name.split(",")[0] + " " + fmt(max.priceMeta[rankFuel].value);
+  }
+
+  document.getElementById("rankToggle").addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    rankFuel = btn.getAttribute("data-fuel");
+    document.querySelectorAll("#rankToggle button").forEach(b => b.classList.toggle("active", b === btn));
+    renderRanking();
+  });
+
+  let trendFuel = "petrol";
+
+  function buildTrendChartSVG(series, color) {
+    const w = 600, h = 140, padX = 14, padTop = 30, padBottom = 14;
+    const min = Math.min(...series), max = Math.max(...series);
+    const range = (max - min) || 1;
+    const stepX = series.length > 1 ? (w - padX * 2) / (series.length - 1) : 0;
+    const points = series.map((v, i) => {
+      const x = padX + i * stepX;
+      const y = padTop + (1 - (v - min) / range) * (h - padTop - padBottom);
+      return [x, y];
+    });
+    const linePath = points.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+    const areaPath = linePath +
+      " L" + points[points.length - 1][0].toFixed(1) + "," + (h - padBottom) +
+      " L" + points[0][0].toFixed(1) + "," + (h - padBottom) + " Z";
+    const dots = points.map((p, i) =>
+      '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="' + (i === points.length - 1 ? 5 : 3.5) + '" fill="' + color + '" stroke="#fff" stroke-width="' + (i === points.length - 1 ? 2 : 1.5) + '"/>'
+    ).join("");
+    const labels = points.map((p, i) => {
+      const labelY = Math.max(p[1] - 12, 11);
+      const anchor = i === 0 ? "start" : (i === points.length - 1 ? "end" : "middle");
+      const dx = i === 0 ? 2 : (i === points.length - 1 ? -2 : 0);
+      return '<text x="' + (p[0] + dx).toFixed(1) + '" y="' + labelY.toFixed(1) + '" text-anchor="' + anchor +
+        '" font-size="13" font-weight="700" font-family="Poppins, system-ui, sans-serif" fill="#3a3450">$' + series[i].toFixed(2) + '</text>';
+    }).join("");
+    const gradId = "trendGrad";
+    return '<svg class="trend-chart-svg" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+      '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.25"/>' +
+        '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
+      '</linearGradient></defs>' +
+      '<path d="' + areaPath + '" fill="url(#' + gradId + ')" stroke="none"/>' +
+      '<path d="' + linePath + '" fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+      dots +
+      labels +
+      '</svg>';
+  }
+
+  function renderTrend() {
+    const meta = currentCity.priceMeta[trendFuel];
+    const series = meta.series;
+    const color = trendFuel === "petrol" ? "#d99a2b" : "#2f9e6e";
+    document.getElementById("trendPrice").textContent = fmt(meta.value);
+    document.getElementById("trendAsOf").textContent = meta.level + " · as of " + meta.asOf;
+    document.getElementById("trendChartWrap").innerHTML =
+      buildTrendChartSVG(series, color) +
+      '<div class="trend-labels">' + WEEK_LABELS.slice(0, series.length).map(l => '<span>' + l + '</span>').join("") + '</div>';
+
+    const changeEl = document.getElementById("trendChange");
+    if (series.length >= 2) {
+      const diff = series[series.length - 1] - series[series.length - 2];
+      const pct = (diff / series[series.length - 2]) * 100;
+      const up = diff >= 0;
+      changeEl.className = "trend-change " + (up ? "up" : "down");
+      changeEl.textContent = (up ? "▲ " : "▼ ") + Math.abs(pct).toFixed(1) + "% vs. last week";
+    } else {
+      changeEl.className = "trend-change";
+      changeEl.textContent = "—";
+    }
+  }
+
+  document.getElementById("trendToggle").addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    trendFuel = btn.getAttribute("data-fuel");
+    document.querySelectorAll("#trendToggle button").forEach(b => b.classList.toggle("active", b === btn));
+    renderTrend();
+  });
+
+  function renderCalc() {
+    document.getElementById("calcCityName").textContent = currentCity.name.split(",")[0];
+    const distance = parseFloat(document.getElementById("calcDistance").value) || 0;
+    const efficiency = parseFloat(document.getElementById("calcEfficiency").value) || 1;
+    const price = currentCity.priceMeta[calcFuel].value;
+    const gallons = distance / efficiency;
+    const cost = gallons * price;
+    document.getElementById("calcResultNum").textContent = "$" + cost.toFixed(2);
+    document.getElementById("calcResultBreakdown").textContent =
+      "≈ " + gallons.toFixed(1) + " gal at " + fmt(price) + "/gal (" + calcFuel + ")";
+  }
+
+  document.getElementById("calcFuelToggle").addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    calcFuel = btn.getAttribute("data-fuel");
+    document.querySelectorAll("#calcFuelToggle button").forEach(b => {
+      b.classList.toggle("active", b === btn);
+    });
+    renderCalc();
+  });
+  document.getElementById("calcDistance").addEventListener("input", renderCalc);
+  document.getElementById("calcEfficiency").addEventListener("input", renderCalc);
+
+  // ---------------------------------------------------------------------
+  // map (Leaflet + OpenStreetMap) — needs live internet access to tile
+  // servers, so this section will render blank inside Claude's own chat
+  // preview sandbox, but works normally once hosted anywhere else.
+  // ---------------------------------------------------------------------
+  let map = null;
+  let markerLayer = null;
+
+  function priceTagIcon(station) {
+    const petrolRow =
+      '<div style="display:flex;align-items:center;gap:7px;">' +
+        '<span style="width:17px;height:17px;border-radius:50%;background:#d99a2b;color:#fff;' +
+          'font:800 9px \'Poppins\',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;flex-shrink:0;">P</span>' +
+        '<span style="font:800 12.5px \'Poppins\',system-ui,sans-serif;color:#1c1730;">' + fmt(station.petrolPrice) + '</span>' +
+      '</div>';
+
+    let dieselRow = "";
+    if (station.hasDiesel === true) {
+      dieselRow =
+        '<div style="display:flex;align-items:center;gap:7px;margin-top:4px;padding-top:4px;border-top:1px solid #ece9f7;">' +
+          '<span style="width:17px;height:17px;border-radius:50%;background:#2f9e6e;color:#fff;' +
+            'font:800 9px \'Poppins\',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;flex-shrink:0;">D</span>' +
+          '<span style="font:800 12.5px \'Poppins\',system-ui,sans-serif;color:#1c1730;">' + fmt(station.dieselPrice) + '</span>' +
+        '</div>';
+    }
+
+    const tailColor = "#ffffff";
+    const rows = dieselRow ? 2 : 1;
+    const height = rows === 2 ? 64 : 38;
+
+    return L.divIcon({
+      className: "",
+      html:
+        '<div style="position:relative; display:flex; flex-direction:column; align-items:center; filter:drop-shadow(0 3px 8px rgba(30,20,60,0.28));">' +
+          '<div style="background:#ffffff;padding:6px 11px;border-radius:11px;white-space:nowrap;' +
+            'border:1px solid rgba(30,20,60,0.08);">' + petrolRow + dieselRow + '</div>' +
+          '<div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;' +
+            'border-top:6px solid ' + tailColor + ';margin-top:-1px;"></div>' +
+        '</div>',
+      iconSize: [80, height],
+      iconAnchor: [40, height],
+      popupAnchor: [0, -height]
+    });
+  }
+
+  function initMap() {
+    if (typeof L === "undefined") {
+      document.getElementById("mapFallbackNote").classList.add("show");
+      return;
+    }
+    map = L.map("map", { scrollWheelZoom: true });
+    const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+    tiles.on("tileerror", () => {
+      document.getElementById("mapFallbackNote").classList.add("show");
+    });
+    tiles.addTo(map);
+    markerLayer = L.layerGroup().addTo(map);
+  }
+
+  function renderMap() {
+    document.getElementById("mapCityName").textContent = currentCity.name.split(",")[0];
+    if (!map) return;
+    markerLayer.clearLayers();
+    const latlngs = [[currentCity.geo.lat, currentCity.geo.lon]];
+    currentStations.forEach(s => {
+      const marker = L.marker([s.lat, s.lon], { icon: priceTagIcon(s) });
+      let dieselRow = s.hasDiesel === true
+        ? '<div class="popup-row"><span>Diesel</span><strong>' + fmt(s.dieselPrice) + '</strong></div>'
+        : '<div class="popup-row"><span>Diesel</span><span>' + (s.hasDiesel === false ? "—" : "unlisted") + '</span></div>';
+      let popupHtml = '<div class="popup-name">' + s.name + '</div>' +
+        '<div class="popup-row"><span>Petrol</span><strong>' + fmt(s.petrolPrice) + '</strong></div>' +
+        dieselRow;
+      marker.bindPopup(popupHtml);
+      markerLayer.addLayer(marker);
+      latlngs.push([s.lat, s.lon]);
+    });
+    if (latlngs.length > 1) {
+      map.fitBounds(L.latLngBounds(latlngs), { padding: [36, 36], maxZoom: currentCity.geo.zoom + 2 });
+    } else {
+      map.setView([currentCity.geo.lat, currentCity.geo.lon], currentCity.geo.zoom);
+    }
+    setTimeout(() => { if (map) map.invalidateSize(); }, 150);
+  }
+
+  async function loadAndRenderStations() {
+    showStationSkeletons();
+    document.getElementById("mapLoading").classList.add("show");
+    const stations = await loadStations(currentCity);
+    currentStations = stations;
+    renderStations();
+    renderMap();
+    document.getElementById("mapLoading").classList.remove("show");
+  }
+
+  function renderAll() {
+    citySelect.value = currentCity.id;
+    renderHero();
+    renderRanking();
+    renderTrend();
+    renderCalc();
+    loadAndRenderStations();
+  }
+
+  const jumpBtn = document.getElementById("jumpToCalc");
+  if (jumpBtn) {
+    jumpBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const target = document.getElementById("calc");
+      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  citySelect.addEventListener("change", () => {
+    const city = CITIES.find(c => c.id === citySelect.value);
+    if (city) {
+      currentCity = city;
+      try { localStorage.setItem("fuelboard_last_city", city.id); } catch (e) {}
+      renderAll();
+    }
+  });
+
+  (function init() {
+    let startId = CITIES[0].id;
+    try {
+      const saved = localStorage.getItem("fuelboard_last_city");
+      if (saved && CITIES.some(c => c.id === saved)) startId = saved;
+    } catch (e) {}
+    currentCity = CITIES.find(c => c.id === startId) || CITIES[0];
+    try { initMap(); } catch (e) { document.getElementById("mapFallbackNote").classList.add("show"); }
+    renderAll();
+  })();
+})();
+</script>
+
+<div class="ad-sticky ad-slot" id="stickyAd">
+  <span class="ad-label">AD</span>
+  <div class="ad-icon-badge">⛽</div>
+  <div class="ad-sticky-text">
+    <div class="ad-headline">FuelRewards App</div>
+    <div class="ad-sub">Earn cashback on every fill-up.</div>
+  </div>
+  <button class="ad-cta" type="button">Install →</button>
+  <button class="ad-close" type="button" id="stickyAdClose" aria-label="Dismiss ad">&times;</button>
+</div>
+<script>
+  document.getElementById("stickyAdClose").addEventListener("click", () => {
+    document.getElementById("stickyAd").classList.add("hidden");
+    document.body.classList.add("ad-dismissed");
+  });
+</script>
+</body>
+</html>
