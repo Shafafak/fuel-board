@@ -530,6 +530,17 @@
   .leaflet-popup-content-wrapper { border-radius: 12px; }
   .popup-name { font-weight: 700; font-size: 0.92rem; margin-bottom: 6px; }
   .popup-row { display: flex; justify-content: space-between; gap: 10px; font-size: 0.82rem; padding: 2px 0; }
+  .popup-gmaps-link {
+    display: block;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #ece9f7;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--grad-start);
+    text-decoration: none;
+  }
+  .popup-gmaps-link:hover { text-decoration: underline; }
   .map-fallback-note {
     padding: 14px 18px; font-size: 0.8rem; color: var(--text-faint); background: #faf9fd;
     border-top: 1px solid var(--line); display: none;
@@ -1726,9 +1737,11 @@
       let dieselRow = s.hasDiesel === true
         ? '<div class="popup-row"><span>Diesel</span><strong>' + fmt(s.dieselPrice) + '</strong></div>'
         : '<div class="popup-row"><span>Diesel</span><span>' + (s.hasDiesel === false ? "—" : "unlisted") + '</span></div>';
+      const gmapsUrl = "https://www.google.com/maps/search/?api=1&query=" + s.lat + "," + s.lon;
       let popupHtml = '<div class="popup-name">' + s.name + (isCheapest ? ' <span style="color:#2f9e6e;">(Cheapest)</span>' : '') + '</div>' +
         '<div class="popup-row"><span>Petrol</span><strong>' + fmt(s.petrolPrice) + '</strong></div>' +
-        dieselRow;
+        dieselRow +
+        '<a href="' + gmapsUrl + '" target="_blank" rel="noopener" class="popup-gmaps-link">Open in Google Maps →</a>';
       marker.bindPopup(popupHtml);
       markerLayer.addLayer(marker);
       markerIndex[s.lat + "," + s.lon] = marker;
