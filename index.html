@@ -635,29 +635,6 @@
       </div>
       <div id="trendChartWrap"></div>
     </div>
-  </section>
-
-  <section class="block">
-    <div class="eyebrow">THE BIG PICTURE</div>
-    <h2>Cheapest to priciest</h2>
-    <div class="rank-toggle" id="rankToggle">
-      <button data-fuel="petrol" class="active">Petrol</button>
-      <button data-fuel="diesel">Diesel</button>
-    </div>
-    <div class="rank-compact-card" id="rankCompactCard">
-      <div class="rank-compact-top">
-        <div class="rank-compact-badge">#<span id="rankPosition">—</span><span class="of14" id="rankOfTotal">of —</span></div>
-        <div class="rank-compact-city" id="rankCompactCityName">—</div>
-        <div class="rank-compact-price" id="rankCompactPrice">—</div>
-      </div>
-      <div class="rank-bar-track-full">
-        <div class="rank-bar-marker" id="rankBarMarker"></div>
-      </div>
-      <div class="rank-bar-labels">
-        <span id="rankCheapLabel">—</span>
-        <span id="rankPriceyLabel">—</span>
-      </div>
-    </div>
     <div class="ad-mrec-wrap">
       <div class="ad-slot ad-mrec">
         <span class="ad-label">AD</span>
@@ -1460,7 +1437,6 @@
   }
 
   let currentCity = CITIES[0];
-  let rankFuel = "petrol";
   let calcFuel = "petrol";
 
   const citySelect = document.getElementById("citySelect");
@@ -1581,31 +1557,6 @@
       setTimeout(() => marker.openPopup(), 400);
     }
   }
-
-  function renderRanking() {
-    const sorted = [...CITIES].sort((a, b) => a.priceMeta[rankFuel].value - b.priceMeta[rankFuel].value);
-    const max = sorted[sorted.length - 1];
-    const min = sorted[0];
-    const position = sorted.findIndex(c => c.id === currentCity.id) + 1;
-    const val = currentCity.priceMeta[rankFuel].value;
-    const pct = ((val - min.priceMeta[rankFuel].value) / ((max.priceMeta[rankFuel].value - min.priceMeta[rankFuel].value) || 1)) * 100;
-
-    document.getElementById("rankPosition").textContent = position;
-    document.getElementById("rankOfTotal").textContent = "of " + CITIES.length;
-    document.getElementById("rankCompactCityName").textContent = currentCity.name.split(",")[0];
-    document.getElementById("rankCompactPrice").textContent = fmt(val);
-    document.getElementById("rankBarMarker").style.left = Math.min(Math.max(pct, 2), 98) + "%";
-    document.getElementById("rankCheapLabel").textContent = "Cheapest: " + min.name.split(",")[0] + " " + fmt(min.priceMeta[rankFuel].value);
-    document.getElementById("rankPriceyLabel").textContent = "Priciest: " + max.name.split(",")[0] + " " + fmt(max.priceMeta[rankFuel].value);
-  }
-
-  document.getElementById("rankToggle").addEventListener("click", (e) => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-    rankFuel = btn.getAttribute("data-fuel");
-    document.querySelectorAll("#rankToggle button").forEach(b => b.classList.toggle("active", b === btn));
-    renderRanking();
-  });
 
   let trendFuel = "petrol";
 
@@ -1801,7 +1752,6 @@
   function renderAll() {
     citySelect.value = currentCity.id;
     renderHero();
-    renderRanking();
     renderTrend();
     renderCalc();
     loadAndRenderStations();
