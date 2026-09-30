@@ -1735,8 +1735,24 @@
     renderTrend();
   });
 
-  document.getElementById("stationGallons").addEventListener("input", renderStations);
-  document.getElementById("stationEfficiency").addEventListener("input", renderStations);
+  function refreshBestStationsPopupIfOpen() {
+    // Only refresh if a popup is already open — adjusting these inputs
+    // shouldn't pop it open uninvited if the person closed it deliberately.
+    // Closing first (rather than just updating content in place) forces a
+    // fresh popupopen event, which is what re-wires the "adjust" link.
+    if (userMarker && userMarker.isPopupOpen && userMarker.isPopupOpen()) {
+      userMarker.closePopup();
+      showBestStationsPopup();
+    }
+  }
+  document.getElementById("stationGallons").addEventListener("input", () => {
+    renderStations();
+    refreshBestStationsPopupIfOpen();
+  });
+  document.getElementById("stationEfficiency").addEventListener("input", () => {
+    renderStations();
+    refreshBestStationsPopupIfOpen();
+  });
 
   // ---------------------------------------------------------------------
   // map (Leaflet + OpenStreetMap) — needs live internet access to tile
