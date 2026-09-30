@@ -603,7 +603,7 @@
 
   .legend-row { display: flex; gap: 16px; padding: 12px 18px; background: #faf9fd; font-size: 0.82rem; color: var(--text-muted); flex-wrap: wrap; }
   .legend-row .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  .legend-hint { margin-left: auto; font-size: 0.76rem; color: var(--text-faint); font-style: italic; }
+  .map-pin-hint { font-size: 0.82rem; color: var(--text-muted); margin: 0 0 12px; }
   .leaflet-popup-content-wrapper { border-radius: 12px; }
   .popup-name { font-weight: 700; font-size: 0.92rem; margin-bottom: 6px; }
   .popup-row { display: flex; justify-content: space-between; gap: 10px; font-size: 0.82rem; padding: 2px 0; }
@@ -623,6 +623,13 @@
   .popup-best-badge.nearest { background: #e7e4fb; color: #5b4fe0; }
   .popup-best-badge.save { background: #dbf0e5; color: #1f7350; }
   .popup-best-badge.cost { background: #fbe2e2; color: #a8324a; }
+  .popup-best-assumption {
+    font-size: 0.68rem; color: var(--text-faint);
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid #ece9f7;
+  }
+  .popup-assumption-link {
+    color: var(--grad-start); font-weight: 700; cursor: pointer; text-decoration: underline;
+  }
   .popup-gmaps-link {
     display: block;
     margin-top: 8px;
@@ -670,7 +677,8 @@
 <main>
   <section class="block">
     <div class="eyebrow">ON THE MAP</div>
-    <h2>Find the biggest savings in <span id="mapCityName">—</span></h2>
+    <h2>Find the biggest savings in <span id="mapCityName">—</span>!</h2>
+    <p class="map-pin-hint">📍 Tap the map or search a place below to set your location</p>
     <div class="place-search-row">
       <input type="text" id="placeSearchInput" placeholder="Search a place in the city…">
       <button type="button" id="placeSearchBtn">Search</button>
@@ -684,7 +692,6 @@
       <div class="legend-row">
         <span><span class="dot" style="background:#d99a2b"></span>Petrol</span>
         <span><span class="dot" style="background:#3d7dd6"></span>Diesel</span>
-        <span class="legend-hint">📍 Drag the "You" pin to set your location</span>
       </div>
       <div class="map-fallback-note" id="mapFallbackNote">Map tiles didn't load — this view needs live internet access to OpenStreetMap, which Claude's chat preview blocks. It'll work once hosted elsewhere.</div>
     </div>
@@ -1859,8 +1866,29 @@
       '</a>';
     }).join("");
 
-    const html = '<div class="popup-name">Best stations for this spot</div>' + rowsHtml;
-    userMarker.bindPopup(html, { maxWidth: 240 }).openPopup();
+    const html = '<div class="popup-name">Best stations for this spot</div>' + rowsHtml +
+      '<div class="popup-best-assumption">Based on ' + gallons + ' gal @ ' + efficiency + ' mpg — <span class="popup-assumption-link" role="button" tabindex="0">adjust</span></div>';
+    userMarker.bindPopup(html, { maxWidth: 240 });
+
+    // Registered BEFORE openPopup() below, since openPopup() fires this
+    // event on the map synchronously — a listener added after would miss it
+    // entirely. Checks it's specifically this popup (not some other marker's)
+    // before wiring the link, since popupopen fires for any popup on the map.
+    map.once("popupopen", (e) => {
+      if (e.popup !== userMarker.getPopup()) return;
+      const link = document.querySelector(".popup-assumption-link");
+      if (link) {
+        link.addEventListener("click", () => {
+          const target = document.getElementById("stationGallons");
+          if (target) {
+            target.closest(".station-cost-inputs").scrollIntoView({ behavior: "smooth", block: "center" });
+            target.focus();
+          }
+          map.closePopup();
+        });
+      }
+    });
+    userMarker.openPopup();
   }
 
   function renderMap() {
