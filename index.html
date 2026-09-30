@@ -663,6 +663,7 @@
         <span class="ad-label">AD</span>
         <span class="car-ads-title">Find cars near you</span>
         <div class="car-ads-zip-check">
+          <input type="text" id="carAdsPubidInput" placeholder="pubid" maxlength="10" inputmode="numeric" style="width:64px;">
           <input type="text" id="carAdsZipInput" placeholder="Test ZIP" maxlength="5" inputmode="numeric">
           <button type="button" id="carAdsZipCheck">Check</button>
         </div>
@@ -840,7 +841,7 @@
     phl: "19107"
   };
 
-  async function loadCarAds(lat, lon, knownZip) {
+  async function loadCarAds(lat, lon, knownZip, pubidOverride) {
     const scroll = document.getElementById("carAdsScroll");
     const moreBtn = document.getElementById("carAdsMore");
     if (scroll) scroll.innerHTML = '<div class="car-ads-empty">Loading nearby vehicles…</div>';
@@ -852,14 +853,17 @@
       return;
     }
     if (knownZip) console.info("[carAds] Using known-good default ZIP:", knownZip, "(bypassed live lookup)");
-    if (LOTLINX_PUBID === "REPLACE_WITH_REAL_PUBID") {
+
+    const pubid = pubidOverride || LOTLINX_PUBID;
+    if (pubidOverride) console.info("[carAds] Using OVERRIDE pubid for testing:", pubidOverride);
+    if (LOTLINX_PUBID === "REPLACE_WITH_REAL_PUBID" && !pubidOverride) {
       console.warn("[carAds] LOTLINX_PUBID is still a placeholder.");
     }
 
-    console.info("[carAds] Pushing setPage + buildCustom to VinAds queue. pubid=" + LOTLINX_PUBID + " zip=" + zip);
+    console.info("[carAds] Pushing setPage + buildCustom to VinAds queue. pubid=" + pubid + " zip=" + zip);
     window.VinAds.push({
       op: "setPage",
-      pubid: LOTLINX_PUBID,
+      pubid: pubid,
       zip: zip,
       debug: true // per LotLinx docs — makes their script log its own diagnostics to console
     });
@@ -885,13 +889,18 @@
       return;
     }
     input.style.borderColor = "";
-    console.info("[carAds] Manually testing ZIP:", zip);
-    loadCarAds(null, null, zip);
+    const pubidInput = document.getElementById("carAdsPubidInput");
+    const pubidOverride = (pubidInput.value || "").trim() || null;
+    console.info("[carAds] Manually testing ZIP:", zip, pubidOverride ? "with pubid override " + pubidOverride : "(default pubid)");
+    loadCarAds(null, null, zip, pubidOverride);
   }
   document.getElementById("carAdsZipCheck").addEventListener("click", checkManualZip);
   document.getElementById("carAdsZipInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") checkManualZip();
     document.getElementById("carAdsZipInput").style.borderColor = "";
+  });
+  document.getElementById("carAdsPubidInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") checkManualZip();
   });
 
   // Expose so the main app script can trigger a re-fetch on pin drag/city load.
