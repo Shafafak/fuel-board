@@ -190,18 +190,10 @@
   .hero {
     position: relative;
     overflow: hidden;
-    background: #211d3f;
+    background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
     padding: env(safe-area-inset-top, 0px) 24px 18px;
     padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
     color: #ffffff;
-  }
-  .hero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.16) 1.4px, transparent 1.4px);
-    background-size: 20px 20px;
-    pointer-events: none;
   }
   .hero-inner { position: relative; max-width: 1080px; margin: 0 auto; }
 
@@ -556,7 +548,7 @@
   .calc-result {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center;
-    background: #211d3f;
+    background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
     border-radius: 18px;
     padding: 24px;
     color: #ffffff;
@@ -663,7 +655,6 @@
         <span class="ad-label">AD</span>
         <span class="car-ads-title">Find cars near you</span>
         <div class="car-ads-zip-check">
-          <input type="text" id="carAdsPubidInput" placeholder="pubid" maxlength="10" inputmode="numeric" style="width:64px;">
           <input type="text" id="carAdsZipInput" placeholder="Test ZIP" maxlength="5" inputmode="numeric">
           <button type="button" id="carAdsZipCheck">Check</button>
         </div>
@@ -841,7 +832,7 @@
     phl: "19107"
   };
 
-  async function loadCarAds(lat, lon, knownZip, pubidOverride) {
+  async function loadCarAds(lat, lon, knownZip) {
     const scroll = document.getElementById("carAdsScroll");
     const moreBtn = document.getElementById("carAdsMore");
     if (scroll) scroll.innerHTML = '<div class="car-ads-empty">Loading nearby vehicles…</div>';
@@ -853,17 +844,14 @@
       return;
     }
     if (knownZip) console.info("[carAds] Using known-good default ZIP:", knownZip, "(bypassed live lookup)");
-
-    const pubid = pubidOverride || LOTLINX_PUBID;
-    if (pubidOverride) console.info("[carAds] Using OVERRIDE pubid for testing:", pubidOverride);
-    if (LOTLINX_PUBID === "REPLACE_WITH_REAL_PUBID" && !pubidOverride) {
+    if (LOTLINX_PUBID === "REPLACE_WITH_REAL_PUBID") {
       console.warn("[carAds] LOTLINX_PUBID is still a placeholder.");
     }
 
-    console.info("[carAds] Pushing setPage + buildCustom to VinAds queue. pubid=" + pubid + " zip=" + zip);
+    console.info("[carAds] Pushing setPage + buildCustom to VinAds queue. pubid=" + LOTLINX_PUBID + " zip=" + zip);
     window.VinAds.push({
       op: "setPage",
-      pubid: pubid,
+      pubid: LOTLINX_PUBID,
       zip: zip,
       debug: true // per LotLinx docs — makes their script log its own diagnostics to console
     });
@@ -889,18 +877,13 @@
       return;
     }
     input.style.borderColor = "";
-    const pubidInput = document.getElementById("carAdsPubidInput");
-    const pubidOverride = (pubidInput.value || "").trim() || null;
-    console.info("[carAds] Manually testing ZIP:", zip, pubidOverride ? "with pubid override " + pubidOverride : "(default pubid)");
-    loadCarAds(null, null, zip, pubidOverride);
+    console.info("[carAds] Manually testing ZIP:", zip);
+    loadCarAds(null, null, zip);
   }
   document.getElementById("carAdsZipCheck").addEventListener("click", checkManualZip);
   document.getElementById("carAdsZipInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") checkManualZip();
     document.getElementById("carAdsZipInput").style.borderColor = "";
-  });
-  document.getElementById("carAdsPubidInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") checkManualZip();
   });
 
   // Expose so the main app script can trigger a re-fetch on pin drag/city load.
