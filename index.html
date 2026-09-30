@@ -41,10 +41,10 @@
     color: var(--text-dark);
     font-family: 'Poppins', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
-    padding-bottom: 88px;
+    padding-bottom: 0;
     transition: padding-bottom 0.2s;
   }
-  body.ad-dismissed { padding-bottom: 0; }
+  body.has-sticky-ad { padding-bottom: 88px; }
 
   .wrap { max-width: 1080px; margin: 0 auto; }
 
@@ -82,6 +82,59 @@
 
   /* MREC — box-shaped, same dark style, vertically stacked */
   .ad-mrec-wrap { display: flex; justify-content: center; margin: 28px 0 0; padding: 0 4px; }
+
+  /* car-ad carousel — "Find cars near you" (LotLinx) */
+  .car-ads-wrap { margin-top: 28px; }
+  .car-ads-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .car-ads-header .ad-label {
+    position: static;
+    background: rgba(0,0,0,0.06); color: var(--text-faint);
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em;
+    padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
+  }
+  .car-ads-title { font-size: 0.85rem; font-weight: 700; color: var(--text-dark); }
+  .car-ads-scroll {
+    display: flex; gap: 12px;
+    overflow-x: auto; scroll-snap-type: x mandatory;
+    padding-bottom: 4px; scrollbar-width: thin;
+  }
+  .car-ads-scroll::-webkit-scrollbar { height: 6px; }
+  .car-ads-scroll::-webkit-scrollbar-thumb { background: var(--line); border-radius: 999px; }
+  .car-ads-empty {
+    padding: 20px 14px; font-size: 0.8rem; color: var(--text-faint);
+    background: var(--card-bg); border-radius: 14px; flex: 1;
+  }
+  .car-ad-card {
+    scroll-snap-align: start;
+    flex: 0 0 calc(42% - 6px);
+    min-width: 150px;
+    background: var(--card-bg);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(30,20,60,0.08);
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  @media (min-width: 640px) { .car-ad-card { flex-basis: calc(38% - 8px); } }
+  .car-ad-card img {
+    width: 100%; height: 110px; object-fit: cover; display: block;
+    background: var(--line);
+  }
+  .car-ad-body { padding: 10px 12px; }
+  .car-ad-title {
+    font-size: 0.82rem; font-weight: 700; color: var(--text-dark);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .car-ad-price { font-size: 0.9rem; font-weight: 800; color: var(--grad-start); margin-top: 2px; }
+  .car-ad-meta { font-size: 0.7rem; color: var(--text-faint); margin-top: 3px; }
+  .car-ads-more {
+    display: block; margin: 10px auto 0;
+    background: var(--line); color: var(--text-dark);
+    border: none; border-radius: 999px; padding: 8px 18px;
+    font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .car-ads-more:hover { background: #ddd9ee; }
   .ad-mrec {
     width: min(300px, 100%);
     aspect-ratio: 300 / 250;
@@ -611,14 +664,13 @@
       </div>
       <div class="map-fallback-note" id="mapFallbackNote">Map tiles didn't load — this view needs live internet access to OpenStreetMap, which Claude's chat preview blocks. It'll work once hosted elsewhere.</div>
     </div>
-    <div class="ad-mrec-wrap">
-      <div class="ad-slot ad-mrec">
+    <div class="car-ads-wrap" id="carAdsWrap">
+      <div class="car-ads-header">
         <span class="ad-label">AD</span>
-        <div class="ad-icon-badge">🧭</div>
-        <div class="ad-headline">RoadReady Tires</div>
-        <div class="ad-sub">Free rotation with every set. Book in 60 seconds.</div>
-        <button class="ad-cta" type="button">Find a shop →</button>
+        <span class="car-ads-title">Find cars near you</span>
       </div>
+      <div class="car-ads-scroll" id="carAdsScroll"></div>
+      <button class="car-ads-more" type="button" id="carAdsMore" style="display:none;">Scroll for more →</button>
     </div>
   </section>
   <section class="block">
@@ -635,17 +687,6 @@
     </div>
     <div class="station-grid-wrap">
       <div class="station-grid" id="stationGrid"></div>
-    </div>
-    <div class="ad-banner-wrap">
-      <div class="ad-slot ad-banner">
-        <span class="ad-label">AD</span>
-        <div class="ad-icon-badge">🔔</div>
-        <div class="ad-sticky-text">
-          <div class="ad-headline">GasBuddy Alerts</div>
-          <div class="ad-sub">Get notified when prices drop.</div>
-        </div>
-        <button class="ad-cta" type="button">Enable →</button>
-      </div>
     </div>
   </section>
 
@@ -665,15 +706,6 @@
         <div class="trend-change" id="trendChange">—</div>
       </div>
       <div id="trendChartWrap"></div>
-    </div>
-    <div class="ad-mrec-wrap">
-      <div class="ad-slot ad-mrec">
-        <span class="ad-label">AD</span>
-        <div class="ad-icon-badge">🛡️</div>
-        <div class="ad-headline">DriveSafe Insurance</div>
-        <div class="ad-sub">Compare quotes from top providers in 2 minutes.</div>
-        <button class="ad-cta" type="button">Get a quote →</button>
-      </div>
     </div>
   </section>
 
@@ -710,6 +742,124 @@
 
 
 
+<script src="https://ads.lotlinx.com/load.js" async></script>
+<script>
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------------
+  // LotLinx car-ad carousel ("Find cars near you"), shown under the map.
+  // Per LotLinx docs: setPage (pubid + zip) then buildCustom with a
+  // callback receiving a vehicle array (or "" if no matches). Since we
+  // only have lat/lon from the draggable pin, we reverse-geocode to a
+  // ZIP via our own /api/reverse-geocode proxy first.
+  //
+  // Placed BEFORE the main app script intentionally: the main script's
+  // initial page load calls renderMap() synchronously, which in turn
+  // calls window.__loadCarAds() — that function must already exist by
+  // then, not just by the time a pin drag happens later.
+  // ---------------------------------------------------------------------
+  const LOTLINX_PUBID = "283000";
+
+  window.VinAds = window.VinAds || [];
+
+  function escapeHtml(str) {
+    return String(str == null ? "" : str).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  function fmtPrice(v) {
+    const n = parseFloat(v);
+    return Number.isNaN(n) ? "" : "$" + n.toLocaleString();
+  }
+
+  function fmtMileage(v) {
+    const n = parseFloat(v);
+    return Number.isNaN(n) ? "" : n.toLocaleString() + " mi";
+  }
+
+  function carCardHtml(v) {
+    const meta = [fmtMileage(v.mileage), v.dealer_name].filter(Boolean).join(" · ");
+    return '<a class="car-ad-card" href="' + escapeHtml(v.url || "#") + '" target="_blank" rel="noopener">' +
+      '<img src="' + escapeHtml(v.image_url || "") + '" alt="' + escapeHtml(v.title || "Vehicle") + '" loading="lazy">' +
+      '<div class="car-ad-body">' +
+        '<div class="car-ad-title">' + escapeHtml(v.title) + '</div>' +
+        '<div class="car-ad-price">' + fmtPrice(v.price) + '</div>' +
+        '<div class="car-ad-meta">' + escapeHtml(meta) + '</div>' +
+      '</div>' +
+    '</a>';
+  }
+
+  function renderCarAds(vehicles) {
+    const scroll = document.getElementById("carAdsScroll");
+    const moreBtn = document.getElementById("carAdsMore");
+    if (!scroll) return;
+    console.info("[carAds] LotLinx buildCustom callback fired. Payload:", vehicles);
+    if (!vehicles || vehicles === "" || !vehicles.length) {
+      console.warn("[carAds] No vehicles returned — hiding scroll row, keeping header visible.");
+      scroll.innerHTML = '<div class="car-ads-empty">No matching vehicles for this location right now.</div>';
+      if (moreBtn) moreBtn.style.display = "none";
+      return;
+    }
+    scroll.innerHTML = vehicles.map(carCardHtml).join("");
+    if (moreBtn) moreBtn.style.display = "";
+  }
+
+  async function resolveZip(lat, lon) {
+    try {
+      const res = await fetch("/api/reverse-geocode?lat=" + lat + "&lon=" + lon);
+      if (!res.ok) {
+        console.warn("[carAds] /api/reverse-geocode returned HTTP " + res.status + " — is this deployed on Vercel? This endpoint doesn't exist in Claude's own chat preview.");
+        return null;
+      }
+      const data = await res.json();
+      console.info("[carAds] Resolved ZIP:", data.zip, "for", lat, lon);
+      return data.zip || null;
+    } catch (e) {
+      console.warn("[carAds] reverse-geocode fetch failed — likely not running on the deployed site. Error:", e);
+      return null;
+    }
+  }
+
+  async function loadCarAds(lat, lon) {
+    const scroll = document.getElementById("carAdsScroll");
+    const moreBtn = document.getElementById("carAdsMore");
+    if (scroll) scroll.innerHTML = '<div class="car-ads-empty">Loading nearby vehicles…</div>';
+    if (moreBtn) moreBtn.style.display = "none";
+
+    const zip = await resolveZip(lat, lon);
+    if (!zip) {
+      if (scroll) scroll.innerHTML = '<div class="car-ads-empty">Couldn\'t determine a ZIP code for this location.</div>';
+      return;
+    }
+    if (LOTLINX_PUBID === "REPLACE_WITH_REAL_PUBID") {
+      console.warn("[carAds] LOTLINX_PUBID is still a placeholder.");
+    }
+
+    console.info("[carAds] Pushing setPage + buildCustom to VinAds queue. pubid=" + LOTLINX_PUBID + " zip=" + zip);
+    window.VinAds.push({
+      op: "setPage",
+      pubid: LOTLINX_PUBID,
+      zip: zip
+    });
+
+    window.VinAds.push({
+      op: "buildCustom",
+      numresults: 6,
+      callback: renderCarAds
+    });
+  }
+
+  document.getElementById("carAdsMore").addEventListener("click", () => {
+    const scroll = document.getElementById("carAdsScroll");
+    if (scroll) scroll.scrollBy({ left: scroll.clientWidth * 0.8, behavior: "smooth" });
+  });
+
+  // Expose so the main app script can trigger a re-fetch on pin drag.
+  window.__loadCarAds = loadCarAds;
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 (function () {
@@ -1767,10 +1917,13 @@
       userMarker.on("dragend", () => {
         recomputeDistancesFromUser();
         renderStations();
+        const pos = userMarker.getLatLng();
+        if (window.__loadCarAds) window.__loadCarAds(pos.lat, pos.lng);
       });
     } else {
       userMarker.setLatLng([currentCity.geo.lat, currentCity.geo.lon]);
     }
+    if (window.__loadCarAds) window.__loadCarAds(currentCity.geo.lat, currentCity.geo.lon);
 
     setTimeout(() => { if (map) map.invalidateSize(); }, 150);
   }
@@ -1830,21 +1983,5 @@
 })();
 </script>
 
-<div class="ad-sticky ad-slot" id="stickyAd">
-  <span class="ad-label">AD</span>
-  <div class="ad-icon-badge">⛽</div>
-  <div class="ad-sticky-text">
-    <div class="ad-headline">FuelRewards App</div>
-    <div class="ad-sub">Earn cashback on every fill-up.</div>
-  </div>
-  <button class="ad-cta" type="button">Install →</button>
-  <button class="ad-close" type="button" id="stickyAdClose" aria-label="Dismiss ad">&times;</button>
-</div>
-<script>
-  document.getElementById("stickyAdClose").addEventListener("click", () => {
-    document.getElementById("stickyAd").classList.add("hidden");
-    document.body.classList.add("ad-dismissed");
-  });
-</script>
 </body>
 </html>
