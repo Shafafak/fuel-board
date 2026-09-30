@@ -93,6 +93,18 @@
     padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
   }
   .car-ads-title { font-size: 0.85rem; font-weight: 700; color: var(--text-dark); }
+  .car-ads-zip-check { display: flex; gap: 6px; margin-left: auto; }
+  .car-ads-zip-check input {
+    width: 78px; font: inherit; font-size: 0.72rem;
+    padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--card-bg); color: var(--text-dark);
+  }
+  .car-ads-zip-check button {
+    font: inherit; font-size: 0.72rem; font-weight: 700;
+    background: var(--line); color: var(--text-dark);
+    border: none; border-radius: 8px; padding: 5px 10px; cursor: pointer;
+  }
+  .car-ads-zip-check button:hover { background: #ddd9ee; }
   .car-ads-scroll {
     display: flex; gap: 12px;
     overflow-x: auto; scroll-snap-type: x mandatory;
@@ -178,7 +190,7 @@
   .hero {
     position: relative;
     overflow: hidden;
-    background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+    background: #211d3f;
     padding: env(safe-area-inset-top, 0px) 24px 18px;
     padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
     color: #ffffff;
@@ -544,7 +556,7 @@
   .calc-result {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center;
-    background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
+    background: #211d3f;
     border-radius: 18px;
     padding: 24px;
     color: #ffffff;
@@ -650,6 +662,10 @@
       <div class="car-ads-header">
         <span class="ad-label">AD</span>
         <span class="car-ads-title">Find cars near you</span>
+        <div class="car-ads-zip-check">
+          <input type="text" id="carAdsZipInput" placeholder="Test ZIP" maxlength="5" inputmode="numeric">
+          <button type="button" id="carAdsZipCheck">Check</button>
+        </div>
       </div>
       <div class="car-ads-scroll" id="carAdsScroll"></div>
       <button class="car-ads-more" type="button" id="carAdsMore" style="display:none;">Scroll for more →</button>
@@ -858,6 +874,24 @@
   document.getElementById("carAdsMore").addEventListener("click", () => {
     const scroll = document.getElementById("carAdsScroll");
     if (scroll) scroll.scrollBy({ left: scroll.clientWidth * 0.8, behavior: "smooth" });
+  });
+
+  function checkManualZip() {
+    const input = document.getElementById("carAdsZipInput");
+    const zip = (input.value || "").trim();
+    if (!/^\d{5}$/.test(zip)) {
+      input.style.borderColor = "#e05252";
+      input.focus();
+      return;
+    }
+    input.style.borderColor = "";
+    console.info("[carAds] Manually testing ZIP:", zip);
+    loadCarAds(null, null, zip);
+  }
+  document.getElementById("carAdsZipCheck").addEventListener("click", checkManualZip);
+  document.getElementById("carAdsZipInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") checkManualZip();
+    document.getElementById("carAdsZipInput").style.borderColor = "";
   });
 
   // Expose so the main app script can trigger a re-fetch on pin drag/city load.
