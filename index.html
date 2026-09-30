@@ -93,18 +93,6 @@
     padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
   }
   .car-ads-title { font-size: 0.85rem; font-weight: 700; color: var(--text-dark); }
-  .car-ads-zip-check { display: flex; gap: 6px; margin-left: auto; }
-  .car-ads-zip-check input {
-    width: 78px; font: inherit; font-size: 0.72rem;
-    padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line);
-    background: var(--card-bg); color: var(--text-dark);
-  }
-  .car-ads-zip-check button {
-    font: inherit; font-size: 0.72rem; font-weight: 700;
-    background: var(--line); color: var(--text-dark);
-    border: none; border-radius: 8px; padding: 5px 10px; cursor: pointer;
-  }
-  .car-ads-zip-check button:hover { background: #ddd9ee; }
   .car-ads-scroll {
     display: flex; gap: 12px;
     overflow-x: auto; scroll-snap-type: x mandatory;
@@ -134,17 +122,29 @@
     background: var(--line);
   }
   .car-ad-body { padding: 10px 12px; }
+  .car-ad-badges { display: flex; gap: 4px; margin-bottom: 5px; }
+  .car-ad-badge {
+    font-size: 0.6rem; font-weight: 700; letter-spacing: 0.03em;
+    color: var(--text-muted); background: var(--line);
+    padding: 2px 7px; border-radius: 999px;
+  }
   .car-ad-title {
     font-size: 0.82rem; font-weight: 700; color: var(--text-dark);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .car-ad-price { font-size: 0.9rem; font-weight: 800; color: var(--grad-start); margin-top: 2px; }
-  .car-ad-meta { font-size: 0.7rem; color: var(--text-faint); margin-top: 3px; }
+  .car-ad-trim { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
+  .car-ad-msrp { font-size: 0.68rem; color: var(--text-faint); margin-top: 6px; }
+  .car-ad-msrp-label { font-weight: 700; }
+  .car-ad-msrp-strike { text-decoration: line-through; }
+  .car-ad-cta { font-size: 0.78rem; font-weight: 700; color: #1f7350; margin-top: 2px; }
+  .car-ad-price { font-size: 0.88rem; font-weight: 800; color: var(--text-dark); margin-top: 6px; }
+  .car-ad-meta { font-size: 0.68rem; color: var(--text-faint); margin-top: 5px; }
   .car-ads-more {
-    display: block; margin: 10px auto 0;
+    margin-left: auto;
     background: var(--line); color: var(--text-dark);
-    border: none; border-radius: 999px; padding: 8px 18px;
-    font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    border: none; border-radius: 999px; padding: 6px 14px;
+    font: inherit; font-size: 0.72rem; font-weight: 700; cursor: pointer;
+    flex-shrink: 0;
   }
   .car-ads-more:hover { background: #ddd9ee; }
   .ad-mrec {
@@ -558,6 +558,21 @@
   .calc-result .result-breakdown { font-size: 0.85rem; color: rgba(255,255,255,0.9); }
 
   /* map */
+  .place-search-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .place-search-row input {
+    flex: 1; font: inherit; font-size: 0.88rem;
+    padding: 9px 14px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--card-bg); color: var(--text-dark);
+  }
+  .place-search-row button {
+    font: inherit; font-size: 0.85rem; font-weight: 700;
+    background: var(--grad-start); color: #fff;
+    border: none; border-radius: 10px; padding: 9px 18px; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .place-search-row button:hover { opacity: 0.9; }
+  .place-search-status { font-size: 0.78rem; color: var(--text-faint); margin-bottom: 10px; min-height: 1em; }
+  .place-search-status.error { color: #a8324a; }
   .map-card {
     border-radius: 20px;
     overflow: hidden;
@@ -588,9 +603,26 @@
 
   .legend-row { display: flex; gap: 16px; padding: 12px 18px; background: #faf9fd; font-size: 0.82rem; color: var(--text-muted); flex-wrap: wrap; }
   .legend-row .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .legend-hint { margin-left: auto; font-size: 0.76rem; color: var(--text-faint); font-style: italic; }
   .leaflet-popup-content-wrapper { border-radius: 12px; }
   .popup-name { font-weight: 700; font-size: 0.92rem; margin-bottom: 6px; }
   .popup-row { display: flex; justify-content: space-between; gap: 10px; font-size: 0.82rem; padding: 2px 0; }
+  .popup-best-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 2px; border-top: 1px solid #ece9f7; font-size: 0.8rem;
+    text-decoration: none; color: inherit; border-radius: 6px;
+    transition: background 0.12s;
+  }
+  .popup-best-row:hover { background: #f5f3fc; }
+  .popup-best-row:first-of-type { border-top: none; }
+  .popup-best-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  .popup-best-price { font-weight: 700; color: var(--text-dark); flex-shrink: 0; }
+  .popup-best-badge {
+    font-size: 0.62rem; font-weight: 700; padding: 2px 6px; border-radius: 999px; flex-shrink: 0;
+  }
+  .popup-best-badge.nearest { background: #e7e4fb; color: #5b4fe0; }
+  .popup-best-badge.save { background: #dbf0e5; color: #1f7350; }
+  .popup-best-badge.cost { background: #fbe2e2; color: #a8324a; }
   .popup-gmaps-link {
     display: block;
     margin-top: 8px;
@@ -638,7 +670,12 @@
 <main>
   <section class="block">
     <div class="eyebrow">ON THE MAP</div>
-    <h2>Station-wise prices in <span id="mapCityName">—</span></h2>
+    <h2>Find the biggest savings in <span id="mapCityName">—</span></h2>
+    <div class="place-search-row">
+      <input type="text" id="placeSearchInput" placeholder="Search a place in the city…">
+      <button type="button" id="placeSearchBtn">Search</button>
+    </div>
+    <div class="place-search-status" id="placeSearchStatus"></div>
     <div class="map-card">
       <div class="map-wrap-inner">
         <div id="map"></div>
@@ -647,6 +684,7 @@
       <div class="legend-row">
         <span><span class="dot" style="background:#d99a2b"></span>Petrol</span>
         <span><span class="dot" style="background:#3d7dd6"></span>Diesel</span>
+        <span class="legend-hint">📍 Drag the "You" pin to set your location</span>
       </div>
       <div class="map-fallback-note" id="mapFallbackNote">Map tiles didn't load — this view needs live internet access to OpenStreetMap, which Claude's chat preview blocks. It'll work once hosted elsewhere.</div>
     </div>
@@ -654,13 +692,9 @@
       <div class="car-ads-header">
         <span class="ad-label">AD</span>
         <span class="car-ads-title">Find cars near you</span>
-        <div class="car-ads-zip-check">
-          <input type="text" id="carAdsZipInput" placeholder="Test ZIP" maxlength="5" inputmode="numeric">
-          <button type="button" id="carAdsZipCheck">Check</button>
-        </div>
+        <button class="car-ads-more" type="button" id="carAdsMore" style="display:none;">Scroll for more →</button>
       </div>
       <div class="car-ads-scroll" id="carAdsScroll"></div>
-      <button class="car-ads-more" type="button" id="carAdsMore" style="display:none;">Scroll for more →</button>
     </div>
   </section>
   <section class="block">
@@ -699,35 +733,6 @@
     </div>
   </section>
 
-  <section class="block" id="calc">
-    <div class="eyebrow">PLAN AHEAD</div>
-    <h2>What will your trip cost?</h2>
-    <p class="section-note">Uses <span id="calcCityName">—</span>'s current price for the fuel you pick.</p>
-    <div class="calc-card">
-      <div>
-        <div class="calc-field">
-          <label>Fuel type</label>
-          <div class="calc-fuel-toggle" id="calcFuelToggle">
-            <button data-fuel="petrol" class="active petrol">Petrol</button>
-            <button data-fuel="diesel" class="diesel">Diesel</button>
-          </div>
-        </div>
-        <div class="calc-field">
-          <label for="calcDistance">Trip distance (miles)</label>
-          <input type="number" id="calcDistance" value="200" min="1" max="5000" step="1">
-        </div>
-        <div class="calc-field">
-          <label for="calcEfficiency">Vehicle efficiency (miles per gallon)</label>
-          <input type="number" id="calcEfficiency" value="28" min="1" max="150" step="0.5">
-        </div>
-      </div>
-      <div class="calc-result">
-        <div class="result-num" id="calcResultNum">$0.00</div>
-        <div class="result-label">Estimated fuel cost</div>
-        <div class="result-breakdown" id="calcResultBreakdown">—</div>
-      </div>
-    </div>
-  </section>
 </main>
 
 <div class="sourced-strip">
@@ -738,26 +743,19 @@
 
 
 
-<script src="https://ads.lotlinx.com/load.js" async></script>
 <script>
 (function () {
   "use strict";
 
   // ---------------------------------------------------------------------
-  // LotLinx car-ad carousel ("Find cars near you"), shown under the map.
-  // Per LotLinx docs: setPage (pubid + zip) then buildCustom with a
-  // callback receiving a vehicle array (or "" if no matches). Since we
-  // only have lat/lon from the draggable pin, we reverse-geocode to a
-  // ZIP via our own /api/reverse-geocode proxy first.
-  //
-  // Placed BEFORE the main app script intentionally: the main script's
-  // initial page load calls renderMap() synchronously, which in turn
-  // calls window.__loadCarAds() — that function must already exist by
-  // then, not just by the time a pin drag happens later.
+  // "Find cars near you" carousel — currently ALWAYS showing demo vehicles
+  // for presentation purposes, not wired to a live ad call. The real
+  // LotLinx integration (setPage/buildCustom, ZIP resolution, etc.) is
+  // parked separately pending confirmation from LotLinx that pubid 283000
+  // has active campaign inventory. Re-enabling it later just means
+  // restoring the setPage/buildCustom push logic and calling it in place
+  // of the direct renderCarAds(DEMO_VEHICLES) call below.
   // ---------------------------------------------------------------------
-  const LOTLINX_PUBID = "281000";
-
-  window.VinAds = window.VinAds || [];
 
   function escapeHtml(str) {
     return String(str == null ? "" : str).replace(/[&<>"']/g, c => ({
@@ -776,91 +774,41 @@
   }
 
   function carCardHtml(v) {
-    const meta = [fmtMileage(v.mileage), v.dealer_name].filter(Boolean).join(" · ");
+    const badges = [v.condition, v.segment].filter(Boolean)
+      .map(b => '<span class="car-ad-badge">' + escapeHtml(b.toUpperCase()) + '</span>').join("");
+    const meta = [v.color, v.dealer_name].filter(Boolean).join(" · ");
+    const priceBlock =
+      '<div class="car-ad-msrp"><span class="car-ad-msrp-label">MSRP</span> <span class="car-ad-msrp-strike">' + fmtPrice(v.price) + '</span></div>' +
+      '<div class="car-ad-cta">See today\'s price</div>';
     return '<a class="car-ad-card" href="' + escapeHtml(v.url || "#") + '" target="_blank" rel="noopener">' +
       '<img src="' + escapeHtml(v.image_url || "") + '" alt="' + escapeHtml(v.title || "Vehicle") + '" loading="lazy">' +
       '<div class="car-ad-body">' +
+        (badges ? '<div class="car-ad-badges">' + badges + '</div>' : '') +
         '<div class="car-ad-title">' + escapeHtml(v.title) + '</div>' +
-        '<div class="car-ad-price">' + fmtPrice(v.price) + '</div>' +
-        '<div class="car-ad-meta">' + escapeHtml(meta) + '</div>' +
+        (v.trim ? '<div class="car-ad-trim">' + escapeHtml(v.trim) + '</div>' : '') +
+        priceBlock +
+        (meta ? '<div class="car-ad-meta">' + escapeHtml(meta) + '</div>' : '') +
       '</div>' +
     '</a>';
   }
+
+  // Real vehicles + real per-vehicle LotLinx click-through URLs and images,
+  // pulled from an actual pubid 283000 inventory export (SUV segment,
+  // ZIP 94102 area) — confirms live inventory does exist on this pubid.
+  const DEMO_VEHICLES = [
+    { title: "2026 Volvo XC60", trim: "B5 Core", condition: "New", segment: "SUV", price: "51180", color: "Aurora Silver", dealer_name: "Volvo Cars Marin, San Rafael", image_url: "https://imgcdn.lotlinx.com/vdn/92604/volvo_xc60_2026_YV4M12RJ7T1410098_92604_2750518917.jpg?ver=20260822", url: "https://autos.lotlinx.com?ad=YV4M12RJ7T1410098&contractid=494717&pubid=283000&uid=bca48a5e-f24c-4dbc-a96a-074f7899c6c7&pdate=202609300544&channelid=KM6M7IEVN75GAV&type=ci&cg_ord=227491" },
+    { title: "2015 Toyota RAV4", trim: "XLE", condition: "Used", segment: "SUV", price: "16588", color: "Magnetic Gray Metallic", dealer_name: "San Francisco Toyota", image_url: "https://imgcdn.lotlinx.com/vdn/948/toyota_rav4_2015_JTMRFREV8FD099392_948_2759401351.jpg?ver=20260918", url: "https://autos.lotlinx.com?ad=JTMRFREV8FD099392&contractid=514795&pubid=283000&uid=bca48a5e-f24c-4dbc-a96a-074f7899c6c7&pdate=202609300544&channelid=KM6M7IEVN75GAV&type=ci&cg_ord=071686" },
+    { title: "2020 Subaru Crosstrek", trim: "Premium", condition: "Used", segment: "SUV", price: "17999", color: "Crystal White Pearl", dealer_name: "San Francisco Toyota", image_url: "https://imgcdn.lotlinx.com/vdn/948/subaru_crosstrek_2020_JF2GTAPC7L8240598_948_2752327774.jpg?ver=20260827", url: "https://autos.lotlinx.com?ad=JF2GTAPC7L8240598&contractid=514795&pubid=283000&uid=bca48a5e-f24c-4dbc-a96a-074f7899c6c7&pdate=202609300544&channelid=KM6M7IEVN75GAV&type=ci&cg_ord=417354" },
+    { title: "2023 Toyota bZ4X", trim: "XLE", condition: "Used", segment: "SUV", price: "23988", color: "Black", dealer_name: "San Francisco Toyota", image_url: "https://imgcdn.lotlinx.com/vdn/948/toyota_bz4x_2023_JTMAAAAA6PA020742_948_2755618954.jpg?ver=20260906", url: "https://autos.lotlinx.com?ad=JTMAAAAA6PA020742&contractid=514795&pubid=283000&uid=bca48a5e-f24c-4dbc-a96a-074f7899c6c7&pdate=202609300544&channelid=KM6M7IEVN75GAV&type=ci&cg_ord=054170" },
+    { title: "2026 Volvo XC90 Plug-In Hybrid", trim: "T8 Plus 7-Seater", condition: "New", segment: "SUV", price: "81960", color: "Crystal White", dealer_name: "Volvo Cars Marin, San Rafael", image_url: "https://imgcdn.lotlinx.com/vdn/92604/volvo_xc90%20plug-in%20hybrid_2026_YV4H60PE7T1482822_92604_2750518980.jpg?ver=20260822", url: "https://autos.lotlinx.com?ad=YV4H60PE7T1482822&contractid=494717&pubid=283000&uid=bca48a5e-f24c-4dbc-a96a-074f7899c6c7&pdate=202609300544&channelid=KM6M7IEVN75GAV&type=ci&cg_ord=755812" }
+  ];
 
   function renderCarAds(vehicles) {
     const scroll = document.getElementById("carAdsScroll");
     const moreBtn = document.getElementById("carAdsMore");
     if (!scroll) return;
-    console.info("[carAds] LotLinx buildCustom callback fired. Payload:", vehicles);
-    if (!vehicles || vehicles === "" || !vehicles.length) {
-      console.warn("[carAds] No vehicles returned — hiding scroll row, keeping header visible.");
-      scroll.innerHTML = '<div class="car-ads-empty">No matching vehicles for this location right now.</div>';
-      if (moreBtn) moreBtn.style.display = "none";
-      return;
-    }
     scroll.innerHTML = vehicles.map(carCardHtml).join("");
     if (moreBtn) moreBtn.style.display = "";
-  }
-
-  async function resolveZip(lat, lon) {
-    try {
-      const res = await fetch("/api/reverse-geocode?lat=" + lat + "&lon=" + lon);
-      if (!res.ok) {
-        console.warn("[carAds] /api/reverse-geocode returned HTTP " + res.status + " — is this deployed on Vercel? This endpoint doesn't exist in Claude's own chat preview.");
-        return null;
-      }
-      const data = await res.json();
-      console.info("[carAds] Resolved ZIP:", data.zip, "for", lat, lon);
-      return data.zip || null;
-    } catch (e) {
-      console.warn("[carAds] reverse-geocode fetch failed — likely not running on the deployed site. Error:", e);
-      return null;
-    }
-  }
-
-  // Nominatim occasionally tags a broad downtown area with a generic/
-  // placeholder-style ZIP (e.g. "10000" for Lower Manhattan) instead of a
-  // real deliverable one. Since our city centers are fixed and known, we
-  // use a verified-correct ZIP for each rather than trusting live lookup
-  // for that one specific, most-common position. Dragged-pin positions
-  // still use live reverse-geocoding, since those are genuinely custom.
-  const CITY_DEFAULT_ZIP = {
-    nyc: "10007",
-    la: "90012",
-    hou: "77002",
-    phx: "85003",
-    phl: "19107"
-  };
-
-  async function loadCarAds(lat, lon, knownZip) {
-    const scroll = document.getElementById("carAdsScroll");
-    const moreBtn = document.getElementById("carAdsMore");
-    if (scroll) scroll.innerHTML = '<div class="car-ads-empty">Loading nearby vehicles…</div>';
-    if (moreBtn) moreBtn.style.display = "none";
-
-    const zip = knownZip || await resolveZip(lat, lon);
-    if (!zip) {
-      if (scroll) scroll.innerHTML = '<div class="car-ads-empty">Couldn\'t determine a ZIP code for this location.</div>';
-      return;
-    }
-    if (knownZip) console.info("[carAds] Using known-good default ZIP:", knownZip, "(bypassed live lookup)");
-    if (LOTLINX_PUBID === "REPLACE_WITH_REAL_PUBID") {
-      console.warn("[carAds] LOTLINX_PUBID is still a placeholder.");
-    }
-
-    console.info("[carAds] Pushing setPage + buildCustom to VinAds queue. pubid=" + LOTLINX_PUBID + " zip=" + zip);
-    window.VinAds.push({
-      op: "setPage",
-      pubid: LOTLINX_PUBID,
-      zip: zip,
-      debug: true // per LotLinx docs — makes their script log its own diagnostics to console
-    });
-
-    window.VinAds.push({
-      op: "buildCustom",
-      numresults: 6,
-      callback: renderCarAds
-    });
   }
 
   document.getElementById("carAdsMore").addEventListener("click", () => {
@@ -868,27 +816,7 @@
     if (scroll) scroll.scrollBy({ left: scroll.clientWidth * 0.8, behavior: "smooth" });
   });
 
-  function checkManualZip() {
-    const input = document.getElementById("carAdsZipInput");
-    const zip = (input.value || "").trim();
-    if (!/^\d{5}$/.test(zip)) {
-      input.style.borderColor = "#e05252";
-      input.focus();
-      return;
-    }
-    input.style.borderColor = "";
-    console.info("[carAds] Manually testing ZIP:", zip);
-    loadCarAds(null, null, zip);
-  }
-  document.getElementById("carAdsZipCheck").addEventListener("click", checkManualZip);
-  document.getElementById("carAdsZipInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") checkManualZip();
-    document.getElementById("carAdsZipInput").style.borderColor = "";
-  });
-
-  // Expose so the main app script can trigger a re-fetch on pin drag/city load.
-  window.__loadCarAds = loadCarAds;
-  window.__CITY_DEFAULT_ZIP = CITY_DEFAULT_ZIP;
+  renderCarAds(DEMO_VEHICLES);
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -1567,8 +1495,6 @@
   }
 
   let currentCity = CITIES[0];
-  let calcFuel = "petrol";
-
   const citySelect = document.getElementById("citySelect");
   CITIES.forEach(c => {
     const opt = document.createElement("option");
@@ -1629,6 +1555,23 @@
 
   let stationFuel = "petrol";
 
+  // Shared by the station list and the "best stations here" map popup:
+  // returns stations ordered with the nearest first, then the rest sorted
+  // by actual net value (best deal first) rather than raw distance.
+  function computeOrderedStations(stations, gallons, efficiency, priceKey) {
+    const nearest = stations[0];
+    const withNet = stations.map(s => {
+      if (s === nearest) return { s, net: null, isNearest: true };
+      const extraMiles = Math.max(0, s.distance - nearest.distance) * 2; // round trip
+      const extraFuelCost = (extraMiles / efficiency) * s[priceKey];
+      const priceSavings = (nearest[priceKey] - s[priceKey]) * gallons;
+      const net = priceSavings - extraFuelCost;
+      return { s, net, isNearest: false };
+    });
+    const others = withNet.filter(x => !x.isNearest).sort((a, b) => b.net - a.net);
+    return [withNet.find(x => x.isNearest), ...others];
+  }
+
   function renderStations() {
     document.getElementById("stationCityName").textContent = currentCity.name.split(",")[0];
     const grid = document.getElementById("stationGrid");
@@ -1653,21 +1596,7 @@
       return;
     }
 
-    const nearest = stations[0];
-
-    // Compute net cost/saving for every non-nearest station first, then sort
-    // so the best deals surface immediately after "Nearest" — with 100+
-    // stations, a real bargain further out shouldn't be buried by distance.
-    const withNet = stations.map(s => {
-      if (s === nearest) return { s, net: null, isNearest: true };
-      const extraMiles = Math.max(0, s.distance - nearest.distance) * 2; // round trip
-      const extraFuelCost = (extraMiles / efficiency) * s[priceKey];
-      const priceSavings = (nearest[priceKey] - s[priceKey]) * gallons;
-      const net = priceSavings - extraFuelCost;
-      return { s, net, isNearest: false };
-    });
-    const others = withNet.filter(x => !x.isNearest).sort((a, b) => b.net - a.net);
-    const ordered = [withNet.find(x => x.isNearest), ...others];
+    const ordered = computeOrderedStations(stations, gallons, efficiency, priceKey);
 
     ordered.forEach(({ s, net, isNearest }) => {
       const card = document.createElement("div");
@@ -1799,29 +1728,6 @@
     renderTrend();
   });
 
-  function renderCalc() {
-    document.getElementById("calcCityName").textContent = currentCity.name.split(",")[0];
-    const distance = parseFloat(document.getElementById("calcDistance").value) || 0;
-    const efficiency = parseFloat(document.getElementById("calcEfficiency").value) || 1;
-    const price = currentCity.priceMeta[calcFuel].value;
-    const gallons = distance / efficiency;
-    const cost = gallons * price;
-    document.getElementById("calcResultNum").textContent = "$" + cost.toFixed(2);
-    document.getElementById("calcResultBreakdown").textContent =
-      "≈ " + gallons.toFixed(1) + " gal at " + fmt(price) + "/gal (" + calcFuel + ")";
-  }
-
-  document.getElementById("calcFuelToggle").addEventListener("click", (e) => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-    calcFuel = btn.getAttribute("data-fuel");
-    document.querySelectorAll("#calcFuelToggle button").forEach(b => {
-      b.classList.toggle("active", b === btn);
-    });
-    renderCalc();
-  });
-  document.getElementById("calcDistance").addEventListener("input", renderCalc);
-  document.getElementById("calcEfficiency").addEventListener("input", renderCalc);
   document.getElementById("stationGallons").addEventListener("input", renderStations);
   document.getElementById("stationEfficiency").addEventListener("input", renderStations);
 
@@ -1889,17 +1795,31 @@
 
   let userMarker = null;
 
+  // Shared by dragging, tap-to-place, and place search — whenever the pin
+  // lands somewhere new, recompute distances, re-sort the station list, and
+  // surface the best-3 popup right there.
+  function onUserPinMoved() {
+    recomputeDistancesFromUser();
+    renderStations();
+    showBestStationsPopup();
+  }
+
   function userLocationIcon() {
+    // The visible pin stays small, but its clickable/draggable hit area is
+    // padded out much larger (invisible), since precisely grabbing a small
+    // target — especially on mobile — is genuinely hard.
     return L.divIcon({
       className: "",
       html:
-        '<div style="display:flex; flex-direction:column; align-items:center; cursor:grab;">' +
-          '<div style="background:#5b4fe0;color:#fff;font:800 10px \'Poppins\',system-ui,sans-serif;' +
-            'padding:2px 7px;border-radius:6px;margin-bottom:3px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.35);">You</div>' +
-          '<div style="width:16px;height:16px;border-radius:50%;background:#5b4fe0;border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.45);"></div>' +
+        '<div style="width:76px; height:76px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; cursor:grab;">' +
+          '<div style="display:flex; flex-direction:column; align-items:center;">' +
+            '<div style="background:#5b4fe0;color:#fff;font:800 10px \'Poppins\',system-ui,sans-serif;' +
+              'padding:2px 7px;border-radius:6px;margin-bottom:3px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.35);">You</div>' +
+            '<div style="width:16px;height:16px;border-radius:50%;background:#5b4fe0;border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.45);"></div>' +
+          '</div>' +
         '</div>',
-      iconSize: [50, 42],
-      iconAnchor: [25, 38]
+      iconSize: [76, 76],
+      iconAnchor: [38, 72]
     });
   }
 
@@ -1909,6 +1829,38 @@
     currentStations.forEach(s => {
       s.distance = haversineMiles(pos.lat, pos.lng, s.lat, s.lon);
     });
+  }
+
+  function showBestStationsPopup() {
+    if (!userMarker || currentStations.length === 0) return;
+    const gallons = parseFloat(document.getElementById("stationGallons").value) || 0;
+    const efficiency = parseFloat(document.getElementById("stationEfficiency").value) || 1;
+    const priceKey = stationFuel === "petrol" ? "petrolPrice" : "dieselPrice";
+
+    const eligible = stationFuel === "diesel"
+      ? [...currentStations].filter(s => s.hasDiesel === true).sort((a, b) => a.distance - b.distance)
+      : [...currentStations].sort((a, b) => a.distance - b.distance);
+    if (eligible.length === 0) return;
+
+    const ordered = computeOrderedStations(eligible, gallons, efficiency, priceKey);
+    const top3 = ordered.slice(0, 3);
+
+    const rowsHtml = top3.map(({ s, isNearest, net }) => {
+      const badge = isNearest
+        ? '<span class="popup-best-badge nearest">Nearest</span>'
+        : (net > 0
+            ? '<span class="popup-best-badge save">Save ' + fmt(net) + '</span>'
+            : '<span class="popup-best-badge cost">' + fmt(Math.abs(net)) + ' extra</span>');
+      const gmapsUrl = "https://www.google.com/maps/search/?api=1&query=" + s.lat + "," + s.lon;
+      return '<a class="popup-best-row" href="' + gmapsUrl + '" target="_blank" rel="noopener">' +
+        '<div class="popup-best-name">' + s.name + '</div>' +
+        '<div class="popup-best-price">' + fmt(s[priceKey]) + '</div>' +
+        badge +
+      '</a>';
+    }).join("");
+
+    const html = '<div class="popup-name">Best stations for this spot</div>' + rowsHtml;
+    userMarker.bindPopup(html, { maxWidth: 240 }).openPopup();
   }
 
   function renderMap() {
@@ -1945,18 +1897,19 @@
         draggable: true,
         zIndexOffset: 1000
       }).addTo(map);
-      userMarker.on("dragend", () => {
-        recomputeDistancesFromUser();
-        renderStations();
-        const pos = userMarker.getLatLng();
-        if (window.__loadCarAds) window.__loadCarAds(pos.lat, pos.lng);
+
+      userMarker.on("dragend", onUserPinMoved);
+
+      // Precisely dragging a small pin is hard, especially on mobile —
+      // tapping anywhere on the map is a far easier way to relocate it.
+      // Bound here (inside the one-time pin-creation guard) so this listener
+      // is only ever attached once, not re-added on every city switch.
+      map.on("click", (e) => {
+        userMarker.setLatLng(e.latlng);
+        onUserPinMoved();
       });
     } else {
       userMarker.setLatLng([currentCity.geo.lat, currentCity.geo.lon]);
-    }
-    if (window.__loadCarAds) {
-      const knownZip = window.__CITY_DEFAULT_ZIP && window.__CITY_DEFAULT_ZIP[currentCity.id];
-      window.__loadCarAds(currentCity.geo.lat, currentCity.geo.lon, knownZip);
     }
 
     setTimeout(() => { if (map) map.invalidateSize(); }, 150);
@@ -1982,7 +1935,6 @@
     citySelect.value = currentCity.id;
     renderHero();
     renderTrend();
-    renderCalc();
     loadAndRenderStations();
   }
 
@@ -1993,6 +1945,49 @@
       try { localStorage.setItem("fuelboard_last_city", city.id); } catch (e) {}
       renderAll();
     }
+  });
+
+  async function searchPlace() {
+    const input = document.getElementById("placeSearchInput");
+    const status = document.getElementById("placeSearchStatus");
+    const q = (input.value || "").trim();
+    if (!q) return;
+    if (!map || !userMarker) {
+      status.textContent = "Map isn't ready yet — try again in a moment.";
+      status.classList.add("error");
+      return;
+    }
+
+    status.classList.remove("error");
+    status.textContent = "Searching…";
+
+    try {
+      const url = "/api/geocode?q=" + encodeURIComponent(q) +
+        "&lat=" + currentCity.geo.lat + "&lon=" + currentCity.geo.lon;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        status.textContent = body.error === "No match found within this city"
+          ? 'No match for "' + q + '" within ' + currentCity.name.split(",")[0] + "."
+          : "Couldn't search right now — try again.";
+        status.classList.add("error");
+        return;
+      }
+      const data = await res.json();
+      userMarker.setLatLng([data.lat, data.lon]);
+      map.setView([data.lat, data.lon], Math.max(currentCity.geo.zoom, 14));
+      onUserPinMoved();
+      status.classList.remove("error");
+      status.textContent = "Moved to: " + (data.displayName || q);
+    } catch (e) {
+      status.textContent = "Couldn't search right now — try again.";
+      status.classList.add("error");
+    }
+  }
+
+  document.getElementById("placeSearchBtn").addEventListener("click", searchPlace);
+  document.getElementById("placeSearchInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") searchPlace();
   });
 
   (function init() {
