@@ -179,8 +179,8 @@
     position: relative;
     overflow: hidden;
     background: linear-gradient(135deg, var(--grad-start), var(--grad-end));
-    padding: env(safe-area-inset-top, 0px) 24px 40px;
-    padding-top: calc(env(safe-area-inset-top, 0px) + 26px);
+    padding: env(safe-area-inset-top, 0px) 24px 18px;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
     color: #ffffff;
   }
   .hero::before {
@@ -199,7 +199,7 @@
     align-items: flex-start;
     flex-wrap: wrap;
     gap: 14px;
-    margin-bottom: 22px;
+    margin-bottom: 12px;
   }
   .eyebrow-lockup .eyebrow-main {
     font-size: 0.82rem;
@@ -246,48 +246,41 @@
   select#citySelect:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 
   .hero h1 {
-    font-size: clamp(1.8rem, 4vw, 2.7rem);
+    font-size: clamp(1.4rem, 3.2vw, 2rem);
     font-weight: 800;
-    margin: 0 0 8px;
+    margin: 0 0 12px;
     letter-spacing: -0.01em;
     line-height: 1.1;
   }
-  .hero .sub {
-    font-size: 1rem;
-    color: rgba(255,255,255,0.85);
-    margin: 0 0 24px;
-    font-weight: 500;
-  }
-  .hero .sub .hl { color: #ffe27a; font-weight: 700; }
 
   .stat-tiles {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin-bottom: 22px;
+    gap: 10px;
+    margin-bottom: 0;
   }
   .stat-tile {
     background: rgba(255,255,255,0.14);
     border: 1px solid rgba(255,255,255,0.28);
-    border-radius: 18px;
-    padding: 16px 18px;
+    border-radius: 14px;
+    padding: 10px 14px;
   }
   .stat-tile .stat-num {
-    font-size: clamp(1.7rem, 4vw, 2.3rem);
+    font-size: clamp(1.3rem, 3.2vw, 1.7rem);
     font-weight: 800;
     line-height: 1;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
   .stat-tile .stat-label {
-    font-size: 0.68rem;
+    font-size: 0.62rem;
     font-weight: 700;
     letter-spacing: 0.08em;
     color: rgba(255,255,255,0.78);
     text-transform: uppercase;
   }
   .stat-tile .stat-delta {
-    margin-top: 8px;
-    font-size: 0.78rem;
+    margin-top: 4px;
+    font-size: 0.72rem;
     font-weight: 600;
     display: inline-flex;
     align-items: center;
@@ -342,7 +335,7 @@
   }
 
   /* ---------------- sections ---------------- */
-  main { padding: 40px 24px 60px; }
+  main { padding: 20px 24px 60px; }
   section.block { max-width: 1080px; margin: 0 auto 56px; }
   .eyebrow {
     color: var(--eyebrow);
@@ -567,7 +560,7 @@
     box-shadow: 0 4px 18px rgba(30,20,60,0.08);
     border: 1px solid var(--line);
   }
-  #map { width: 100%; height: 420px; background: #eee; }
+  #map { width: 100%; height: 360px; background: #eee; }
   .map-wrap-inner { position: relative; }
   .map-loading {
     position: absolute; inset: 0;
@@ -633,20 +626,9 @@
     </div>
 
     <h1 id="heroTitle">—</h1>
-    <p class="sub">Know your <span class="hl">price</span> before you fill up.</p>
 
     <div class="stat-tiles" id="statTiles"></div>
-
-    <div class="cta-row">
-      <button class="cta-pill" id="jumpToCalc" type="button">Calculate your fuel cost ↓</button>
-    </div>
   </div>
-</div>
-
-<div class="sourced-strip">
-  <span class="lbl">🛡️ SOURCED FROM</span>
-  <span class="pill">U.S. EIA</span>
-  <span class="pill">Weekly Retail Gasoline &amp; Diesel Prices</span>
 </div>
 
 <main>
@@ -739,6 +721,12 @@
     </div>
   </section>
 </main>
+
+<div class="sourced-strip">
+  <span class="lbl">🛡️ SOURCED FROM</span>
+  <span class="pill">U.S. EIA</span>
+  <span class="pill">Weekly Retail Gasoline &amp; Diesel Prices</span>
+</div>
 
 
 
@@ -1950,15 +1938,6 @@
     renderTrend();
     renderCalc();
     loadAndRenderStations();
-  }
-
-  const jumpBtn = document.getElementById("jumpToCalc");
-  if (jumpBtn) {
-    jumpBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      const target = document.getElementById("calc");
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
   }
 
   citySelect.addEventListener("change", () => {
