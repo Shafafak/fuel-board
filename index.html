@@ -1735,16 +1735,6 @@
     renderTrend();
   });
 
-  function refreshBestStationsPopupIfOpen() {
-    // Only refresh if a popup is already open — adjusting these inputs
-    // shouldn't pop it open uninvited if the person closed it deliberately.
-    // Closing first (rather than just updating content in place) forces a
-    // fresh popupopen event, which is what re-wires the "adjust" link.
-    if (userMarker && userMarker.isPopupOpen && userMarker.isPopupOpen()) {
-      userMarker.closePopup();
-      showBestStationsPopup();
-    }
-  }
   document.getElementById("stationGallons").addEventListener("input", () => {
     renderStations();
     refreshBestStationsPopupIfOpen();
@@ -1854,8 +1844,8 @@
     });
   }
 
-  function showBestStationsPopup() {
-    if (!userMarker || currentStations.length === 0) return;
+  function buildBestStationsHtml() {
+    if (!userMarker || currentStations.length === 0) return null;
     const gallons = parseFloat(document.getElementById("stationGallons").value) || 0;
     const efficiency = parseFloat(document.getElementById("stationEfficiency").value) || 1;
     const priceKey = stationFuel === "petrol" ? "petrolPrice" : "dieselPrice";
@@ -1863,7 +1853,7 @@
     const eligible = stationFuel === "diesel"
       ? [...currentStations].filter(s => s.hasDiesel === true).sort((a, b) => a.distance - b.distance)
       : [...currentStations].sort((a, b) => a.distance - b.distance);
-    if (eligible.length === 0) return;
+    if (eligible.length === 0) return null;
 
     const ordered = computeOrderedStations(eligible, gallons, efficiency, priceKey);
     const top3 = ordered.slice(0, 3);
@@ -1882,29 +1872,51 @@
       '</a>';
     }).join("");
 
-    const html = '<div class="popup-name">Best stations for this spot</div>' + rowsHtml +
+    return '<div class="popup-name">Best stations for this spot</div>' + rowsHtml +
       '<div class="popup-best-assumption">Based on ' + gallons + ' gal @ ' + efficiency + ' mpg — <span class="popup-assumption-link" role="button" tabindex="0">adjust</span></div>';
-    userMarker.bindPopup(html, { maxWidth: 240 });
+  }
 
+  function wireAdjustLink() {
+    const link = document.querySelector(".popup-assumption-link");
+    if (!link) return;
+    link.addEventListener("click", () => {
+      const target = document.getElementById("stationGallons");
+      if (target) {
+        target.closest(".station-cost-inputs").scrollIntoView({ behavior: "smooth", block: "center" });
+        target.focus();
+      }
+      map.closePopup();
+    });
+  }
+
+  function showBestStationsPopup() {
+    const html = buildBestStationsHtml();
+    if (!html) return;
+    userMarker.bindPopup(html, { maxWidth: 240 });
     // Registered BEFORE openPopup() below, since openPopup() fires this
     // event on the map synchronously — a listener added after would miss it
     // entirely. Checks it's specifically this popup (not some other marker's)
     // before wiring the link, since popupopen fires for any popup on the map.
     map.once("popupopen", (e) => {
       if (e.popup !== userMarker.getPopup()) return;
-      const link = document.querySelector(".popup-assumption-link");
-      if (link) {
-        link.addEventListener("click", () => {
-          const target = document.getElementById("stationGallons");
-          if (target) {
-            target.closest(".station-cost-inputs").scrollIntoView({ behavior: "smooth", block: "center" });
-            target.focus();
-          }
-          map.closePopup();
-        });
-      }
+      wireAdjustLink();
     });
     userMarker.openPopup();
+  }
+
+  function refreshBestStationsPopupIfOpen() {
+    // Only refresh if a popup is already open — adjusting these inputs
+    // shouldn't pop it open uninvited if the person closed it deliberately.
+    // Updates content in place (setContent) rather than closing and
+    // reopening — that's synchronous and avoids Leaflet's popup open/close
+    // animation timing getting in the way.
+    if (!userMarker || !userMarker.isPopupOpen || !userMarker.isPopupOpen()) return;
+    const popup = userMarker.getPopup();
+    if (!popup) return;
+    const html = buildBestStationsHtml();
+    if (!html) return;
+    popup.setContent(html);
+    wireAdjustLink();
   }
 
   function renderMap() {
