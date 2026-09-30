@@ -312,6 +312,30 @@
   }
 
   /* station list — compact rows */
+  .station-cost-inputs {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    margin-bottom: 14px;
+    font-size: 0.85rem; font-weight: 600; color: var(--text-muted);
+  }
+  .station-cost-inputs label { display: flex; align-items: center; gap: 6px; }
+  .station-cost-inputs input {
+    width: 58px; font: inherit; font-weight: 700; color: var(--text-dark);
+    padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--card-bg); text-align: center;
+  }
+  .station-cost-badge {
+    font-size: 0.68rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .station-cost-badge.save { background: #dbf0e5; color: #1f7350; }
+  .station-cost-badge.cost { background: #fbe2e2; color: #a8324a; }
+  .station-cost-badge.nearest { background: #e7e4fb; color: #5b4fe0; }
+  .station-empty-note {
+    padding: 24px 16px; text-align: center;
+    color: var(--text-faint); font-size: 0.85rem;
+    background: var(--card-bg); border-radius: 12px;
+  }
+
   .station-grid-wrap { position: relative; }
   .station-grid-wrap.scrollable::after {
     content: "";
@@ -348,18 +372,6 @@
     box-shadow: 0 3px 10px rgba(30,20,60,0.14);
     transform: translateY(-1px);
   }
-  .station-card.cheapest { outline: 1.5px solid #2f9e6e; }
-  .station-card.cheapest::after {
-    content: "Cheapest";
-    flex-shrink: 0;
-    background: #2f9e6e;
-    color: #ffffff;
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    padding: 2px 7px;
-    border-radius: 999px;
-  }
   .station-avatar {
     width: 30px; height: 30px;
     border-radius: 50%;
@@ -375,7 +387,7 @@
     flex: 1; min-width: 0;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .fuel-pills { display: flex; gap: 5px; flex-shrink: 0; }
+  .fuel-pills { display: flex; gap: 5px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
   .fuel-pill {
     font-size: 0.68rem;
     font-weight: 700;
@@ -385,7 +397,6 @@
   }
   .fuel-pill.petrol { background: var(--petrol-bg); color: var(--petrol-dark); }
   .fuel-pill.diesel { background: var(--diesel-bg); color: var(--diesel-dark); }
-  .fuel-pill.unavailable { background: var(--line); color: var(--text-faint); }
 
   /* ranking — compact card */
   .rank-toggle { display: inline-flex; gap: 6px; background: var(--line); border-radius: 999px; padding: 4px; margin-bottom: 16px; }
@@ -613,6 +624,15 @@
   <section class="block">
     <div class="eyebrow">ACROSS THE CITY</div>
     <h2>Stations in <span id="stationCityName">—</span></h2>
+    <p class="section-note">Is driving to a cheaper station actually worth it? Enter your fill-up size and mileage — each card shows what you'd really save or lose after the extra drive.</p>
+    <div class="rank-toggle" id="stationFuelToggle">
+      <button data-fuel="petrol" class="active">Petrol</button>
+      <button data-fuel="diesel">Diesel</button>
+    </div>
+    <div class="station-cost-inputs">
+      <label>Fill-up <input type="number" id="stationGallons" value="12" min="1" max="30" step="0.5"> gal</label>
+      <label>at <input type="number" id="stationEfficiency" value="28" min="1" max="150" step="0.5"> mpg</label>
+    </div>
     <div class="station-grid-wrap">
       <div class="station-grid" id="stationGrid"></div>
     </div>
@@ -1404,16 +1424,14 @@
 
   function sortedStations() {
     const arr = [...currentStations].sort((a, b) => a.distance - b.distance);
-    const visibleCount = 8;
-    if (arr.length > visibleCount) {
-      let cheapestIdx = 0;
-      for (let i = 1; i < arr.length; i++) {
-        if (arr[i].petrolPrice < arr[cheapestIdx].petrolPrice) cheapestIdx = i;
-      }
-      if (cheapestIdx >= visibleCount) {
-        const [cheapest] = arr.splice(cheapestIdx, 1);
-        arr.splice(visibleCount - 1, 0, cheapest);
-      }
+    // Guarantee: the nearest station is always first.
+    let nearestIdx = 0;
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i].distance < arr[nearestIdx].distance) nearestIdx = i;
+    }
+    if (nearestIdx !== 0) {
+      const [nearest] = arr.splice(nearestIdx, 1);
+      arr.unshift(nearest);
     }
     return arr;
   }
@@ -1428,30 +1446,71 @@
     }
   }
 
+  let stationFuel = "petrol";
+
   function renderStations() {
     document.getElementById("stationCityName").textContent = currentCity.name.split(",")[0];
     const grid = document.getElementById("stationGrid");
     grid.innerHTML = "";
-    const stations = sortedStations();
-    if (stations.length === 0) return;
-    const cheapestPrice = Math.min(...stations.map(s => s.petrolPrice));
-    stations.forEach(s => {
+    const baseStations = sortedStations();
+    if (baseStations.length === 0) return;
+
+    const gallons = parseFloat(document.getElementById("stationGallons").value) || 0;
+    const efficiency = parseFloat(document.getElementById("stationEfficiency").value) || 1;
+    const priceKey = stationFuel === "petrol" ? "petrolPrice" : "dieselPrice";
+
+    // In Diesel mode, only show stations that actually carry diesel — re-sorted
+    // by distance within that filtered set so "nearest" is scoped correctly.
+    const stations = stationFuel === "diesel"
+      ? baseStations.filter(s => s.hasDiesel === true).sort((a, b) => a.distance - b.distance)
+      : baseStations;
+
+    if (stations.length === 0) {
+      grid.innerHTML = '<div class="station-empty-note">No stations with confirmed diesel found nearby — try Petrol instead.</div>';
+      const emptyWrap = grid.closest(".station-grid-wrap");
+      if (emptyWrap) emptyWrap.classList.remove("scrollable");
+      return;
+    }
+
+    const nearest = stations[0];
+
+    // Compute net cost/saving for every non-nearest station first, then sort
+    // so the best deals surface immediately after "Nearest" — with 100+
+    // stations, a real bargain further out shouldn't be buried by distance.
+    const withNet = stations.map(s => {
+      if (s === nearest) return { s, net: null, isNearest: true };
+      const extraMiles = Math.max(0, s.distance - nearest.distance) * 2; // round trip
+      const extraFuelCost = (extraMiles / efficiency) * s[priceKey];
+      const priceSavings = (nearest[priceKey] - s[priceKey]) * gallons;
+      const net = priceSavings - extraFuelCost;
+      return { s, net, isNearest: false };
+    });
+    const others = withNet.filter(x => !x.isNearest).sort((a, b) => b.net - a.net);
+    const ordered = [withNet.find(x => x.isNearest), ...others];
+
+    ordered.forEach(({ s, net, isNearest }) => {
       const card = document.createElement("div");
-      card.className = "station-card" + (s.petrolPrice === cheapestPrice ? " cheapest" : "");
+      card.className = "station-card";
       card.setAttribute("role", "button");
       card.setAttribute("tabindex", "0");
       const ringColor = s.hasDiesel === true ? "var(--diesel)" : "var(--petrol)";
       const avatarBg = s.hasDiesel === true ? "var(--diesel)" : "var(--petrol)";
-      let dieselPill;
-      if (s.hasDiesel === true) dieselPill = '<span class="fuel-pill diesel">Diesel ' + fmt(s.dieselPrice) + '</span>';
-      else if (s.hasDiesel === false) dieselPill = '<span class="fuel-pill unavailable">No diesel</span>';
-      else dieselPill = '<span class="fuel-pill unavailable">Diesel unlisted</span>';
+      const fuelPill = stationFuel === "petrol"
+        ? '<span class="fuel-pill petrol">Petrol ' + fmt(s.petrolPrice) + '</span>'
+        : '<span class="fuel-pill diesel">Diesel ' + fmt(s.dieselPrice) + '</span>';
+
+      const costBadge = isNearest
+        ? '<span class="station-cost-badge nearest">Nearest' + (stationFuel === "diesel" ? " (diesel)" : "") + '</span>'
+        : (net > 0
+            ? '<span class="station-cost-badge save">Save ' + fmt(net) + '</span>'
+            : '<span class="station-cost-badge cost">' + fmt(Math.abs(net)) + ' extra</span>');
+
       card.innerHTML =
         '<div class="station-avatar" style="background:' + avatarBg + '; border-color:' + ringColor + '">' + initials(s.name) + '</div>' +
         '<div class="station-name">' + s.name + '</div>' +
         '<div class="fuel-pills">' +
-          '<span class="fuel-pill petrol">Petrol ' + fmt(s.petrolPrice) + '</span>' +
-          dieselPill +
+          fuelPill +
+          costBadge +
         '</div>';
       const goToStation = () => locateStationOnMap(s);
       card.addEventListener("click", goToStation);
@@ -1468,6 +1527,14 @@
       });
     }
   }
+
+  document.getElementById("stationFuelToggle").addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if (!btn) return;
+    stationFuel = btn.getAttribute("data-fuel");
+    document.querySelectorAll("#stationFuelToggle button").forEach(b => b.classList.toggle("active", b === btn));
+    renderStations();
+  });
 
   function locateStationOnMap(station) {
     const mapSection = document.getElementById("map");
@@ -1574,6 +1641,8 @@
   });
   document.getElementById("calcDistance").addEventListener("input", renderCalc);
   document.getElementById("calcEfficiency").addEventListener("input", renderCalc);
+  document.getElementById("stationGallons").addEventListener("input", renderStations);
+  document.getElementById("stationEfficiency").addEventListener("input", renderStations);
 
   // ---------------------------------------------------------------------
   // map (Leaflet + OpenStreetMap) — needs live internet access to tile
@@ -1637,6 +1706,30 @@
 
   let markerIndex = {};
 
+  let userMarker = null;
+
+  function userLocationIcon() {
+    return L.divIcon({
+      className: "",
+      html:
+        '<div style="display:flex; flex-direction:column; align-items:center; cursor:grab;">' +
+          '<div style="background:#5b4fe0;color:#fff;font:800 10px \'Poppins\',system-ui,sans-serif;' +
+            'padding:2px 7px;border-radius:6px;margin-bottom:3px;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,0.35);">You</div>' +
+          '<div style="width:16px;height:16px;border-radius:50%;background:#5b4fe0;border:3px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,0.45);"></div>' +
+        '</div>',
+      iconSize: [50, 42],
+      iconAnchor: [25, 38]
+    });
+  }
+
+  function recomputeDistancesFromUser() {
+    if (!userMarker) return;
+    const pos = userMarker.getLatLng();
+    currentStations.forEach(s => {
+      s.distance = haversineMiles(pos.lat, pos.lng, s.lat, s.lon);
+    });
+  }
+
   function renderMap() {
     document.getElementById("mapCityName").textContent = currentCity.name.split(",")[0];
     if (!map) return;
@@ -1661,6 +1754,24 @@
     // Fixed, zoomed-in view centered on downtown rather than fitting every
     // station in the (now much larger) dataset — that would zoom out too far.
     map.setView([currentCity.geo.lat, currentCity.geo.lon], currentCity.geo.zoom);
+
+    // Draggable "You are here" pin, reset to the city center on every city
+    // switch. Station distances already default to distance-from-center, so
+    // nothing needs recalculating until the person actually drags the pin.
+    if (!userMarker) {
+      userMarker = L.marker([currentCity.geo.lat, currentCity.geo.lon], {
+        icon: userLocationIcon(),
+        draggable: true,
+        zIndexOffset: 1000
+      }).addTo(map);
+      userMarker.on("dragend", () => {
+        recomputeDistancesFromUser();
+        renderStations();
+      });
+    } else {
+      userMarker.setLatLng([currentCity.geo.lat, currentCity.geo.lon]);
+    }
+
     setTimeout(() => { if (map) map.invalidateSize(); }, 150);
   }
 
@@ -1669,6 +1780,12 @@
     document.getElementById("mapLoading").classList.add("show");
     const stations = await loadStations(currentCity);
     currentStations = stations;
+    // Always start from city-center distances (matching the pin's reset
+    // position below) — a cached city may carry mutated distances from a
+    // previous drag on an earlier visit, which would otherwise go stale.
+    currentStations.forEach(s => {
+      s.distance = haversineMiles(currentCity.geo.lat, currentCity.geo.lon, s.lat, s.lon);
+    });
     renderStations();
     renderMap();
     document.getElementById("mapLoading").classList.remove("show");
