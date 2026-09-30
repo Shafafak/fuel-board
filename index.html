@@ -810,17 +810,32 @@
     }
   }
 
-  async function loadCarAds(lat, lon) {
+  // Nominatim occasionally tags a broad downtown area with a generic/
+  // placeholder-style ZIP (e.g. "10000" for Lower Manhattan) instead of a
+  // real deliverable one. Since our city centers are fixed and known, we
+  // use a verified-correct ZIP for each rather than trusting live lookup
+  // for that one specific, most-common position. Dragged-pin positions
+  // still use live reverse-geocoding, since those are genuinely custom.
+  const CITY_DEFAULT_ZIP = {
+    nyc: "10007",
+    la: "90012",
+    hou: "77002",
+    phx: "85003",
+    phl: "19107"
+  };
+
+  async function loadCarAds(lat, lon, knownZip) {
     const scroll = document.getElementById("carAdsScroll");
     const moreBtn = document.getElementById("carAdsMore");
     if (scroll) scroll.innerHTML = '<div class="car-ads-empty">Loading nearby vehicles…</div>';
     if (moreBtn) moreBtn.style.display = "none";
 
-    const zip = await resolveZip(lat, lon);
+    const zip = knownZip || await resolveZip(lat, lon);
     if (!zip) {
       if (scroll) scroll.innerHTML = '<div class="car-ads-empty">Couldn\'t determine a ZIP code for this location.</div>';
       return;
     }
+    if (knownZip) console.info("[carAds] Using known-good default ZIP:", knownZip, "(bypassed live lookup)");
     if (LOTLINX_PUBID === "REPLACE_WITH_REAL_PUBID") {
       console.warn("[carAds] LOTLINX_PUBID is still a placeholder.");
     }
@@ -845,8 +860,9 @@
     if (scroll) scroll.scrollBy({ left: scroll.clientWidth * 0.8, behavior: "smooth" });
   });
 
-  // Expose so the main app script can trigger a re-fetch on pin drag.
+  // Expose so the main app script can trigger a re-fetch on pin drag/city load.
   window.__loadCarAds = loadCarAds;
+  window.__CITY_DEFAULT_ZIP = CITY_DEFAULT_ZIP;
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -1912,7 +1928,10 @@
     } else {
       userMarker.setLatLng([currentCity.geo.lat, currentCity.geo.lon]);
     }
-    if (window.__loadCarAds) window.__loadCarAds(currentCity.geo.lat, currentCity.geo.lon);
+    if (window.__loadCarAds) {
+      const knownZip = window.__CITY_DEFAULT_ZIP && window.__CITY_DEFAULT_ZIP[currentCity.id];
+      window.__loadCarAds(currentCity.geo.lat, currentCity.geo.lon, knownZip);
+    }
 
     setTimeout(() => { if (map) map.invalidateSize(); }, 150);
   }
