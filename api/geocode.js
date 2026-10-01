@@ -2,13 +2,17 @@
 // lat/lon, restricted to a bounding box around a given city center so
 // results stay within that city rather than matching nationwide.
 //
-// Deployed URL: /api/geocode?q=<place text>&lat=<city lat>&lon=<city lon>&radius=<degrees, optional>
+// Deployed URL: /api/geocode?q=<text>&lat=<city lat>&lon=<city lon>&radius=<degrees, optional>&limit=<1-5, optional>
+// Response: { results: [{ lat, lon, displayName }, ...] }
 
 module.exports = async (req, res) => {
   const q = (req.query.q || "").trim();
   const lat = parseFloat(req.query.lat);
   const lon = parseFloat(req.query.lon);
   const radius = parseFloat(req.query.radius) || 0.18; // ~12-15 miles, city-sized
+  let limit = parseInt(req.query.limit, 10);
+  if (!Number.isInteger(limit) || limit < 1) limit = 1;
+  if (limit > 5) limit = 5; // keep suggestion lists short and fast
 
   if (!q) {
     res.status(400).json({ error: "q (search text) is required" });
@@ -26,7 +30,7 @@ module.exports = async (req, res) => {
     lon + radius, lat - radius
   ].join(",");
 
-  const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&bounded=1" +
+  const url = "https://nominatim.openstreetmap.org/search?format=jsonv2&limit=" + limit + "&bounded=1" +
     "&viewbox=" + encodeURIComponent(viewbox) +
     "&q=" + encodeURIComponent(q);
 
@@ -52,12 +56,13 @@ module.exports = async (req, res) => {
       return;
     }
 
-    const best = results[0];
     res.setHeader("Cache-Control", "public, max-age=3600");
     res.status(200).json({
-      lat: parseFloat(best.lat),
-      lon: parseFloat(best.lon),
-      displayName: best.display_name || q
+      results: results.map(r => ({
+        lat: parseFloat(r.lat),
+        lon: parseFloat(r.lon),
+        displayName: r.display_name || q
+      }))
     });
   } catch (e) {
     res.status(502).json({ error: "Geocoding failed", detail: e && e.message ? e.message : String(e) });
