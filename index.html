@@ -640,6 +640,7 @@
   .popup-best-badge.nearest { background: #e7e4fb; color: #5b4fe0; }
   .popup-best-badge.save { background: #dbf0e5; color: #1f7350; }
   .popup-best-badge.cost { background: #fbe2e2; color: #a8324a; }
+  .popup-best-go { font-size: 0.85rem; opacity: 0.75; margin-right: 4px; }
   .popup-best-assumption {
     font-size: 0.68rem; color: var(--text-faint);
     margin-top: 8px; padding-top: 8px; border-top: 1px solid #ece9f7;
@@ -647,6 +648,48 @@
   .popup-assumption-link {
     color: var(--grad-start); font-weight: 700; cursor: pointer; text-decoration: underline;
   }
+
+  /* Bottom sheet — replaces the cramped map popup on mobile, since a small
+     floating bubble with tiny text/touch-targets is genuinely hard to use
+     on a phone, especially for older users. */
+  .sheet-backdrop {
+    position: fixed; inset: 0; background: rgba(20,15,40,0.35);
+    opacity: 0; visibility: hidden; transition: opacity 0.25s;
+    z-index: 2000;
+  }
+  .sheet-backdrop.show { opacity: 1; visibility: visible; }
+  .bottom-sheet {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: var(--card-bg); border-radius: 20px 20px 0 0;
+    box-shadow: 0 -6px 24px rgba(20,15,40,0.22);
+    max-height: 75vh; overflow-y: auto;
+    padding: 10px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(100%); transition: transform 0.28s ease;
+    z-index: 2001;
+  }
+  .bottom-sheet.show { transform: translateY(0); }
+  .bottom-sheet-handle {
+    width: 40px; height: 5px; border-radius: 999px; background: var(--line);
+    margin: 0 auto 14px;
+  }
+  .bottom-sheet-close {
+    position: absolute; top: 14px; right: 14px;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--line); border: none; font-size: 1.3rem; color: var(--text-dark);
+    cursor: pointer; line-height: 1;
+  }
+  .bottom-sheet-content .popup-name { font-size: 1.15rem; margin-bottom: 12px; padding-right: 40px; }
+  .bottom-sheet-content .popup-row { font-size: 1rem; padding: 6px 0; }
+  .bottom-sheet-content .popup-gmaps-link { font-size: 0.95rem; margin-top: 14px; padding-top: 14px; }
+  .bottom-sheet-content .popup-best-row {
+    padding: 14px 4px; font-size: 1rem; gap: 10px;
+  }
+  .bottom-sheet-content .popup-best-name { font-size: 1.02rem; }
+  .bottom-sheet-content .popup-best-price { font-size: 1.05rem; }
+  .bottom-sheet-content .popup-best-badge { font-size: 0.78rem; padding: 4px 10px; }
+  .bottom-sheet-content .popup-best-go { font-size: 1.1rem; opacity: 1; }
+  .bottom-sheet-content .popup-best-assumption { font-size: 0.86rem; margin-top: 14px; padding-top: 14px; }
+  .bottom-sheet-content .popup-assumption-link { padding: 4px 2px; }
   .popup-gmaps-link {
     display: block;
     margin-top: 8px;
@@ -769,7 +812,12 @@
   <span class="pill">Weekly Retail Gasoline &amp; Diesel Prices</span>
 </div>
 
-
+<div class="sheet-backdrop" id="sheetBackdrop"></div>
+<div class="bottom-sheet" id="bottomSheet" role="dialog" aria-label="Best deals nearby">
+  <div class="bottom-sheet-handle"></div>
+  <button class="bottom-sheet-close" id="bottomSheetClose" aria-label="Close">&times;</button>
+  <div class="bottom-sheet-content" id="bottomSheetContent"></div>
+</div>
 
 <script>
 (function () {
@@ -1682,7 +1730,7 @@
     const key = station.lat + "," + station.lon;
     const marker = markerIndex[key];
     if (marker) {
-      setTimeout(() => marker.openPopup(), 400);
+      setTimeout(() => openStationInfo(marker), 400);
     }
   }
 
@@ -1887,17 +1935,21 @@
             : '<span class="popup-best-badge cost">' + fmt(Math.abs(net)) + ' extra</span>');
       const gmapsUrl = "https://www.google.com/maps/search/?api=1&query=" + s.lat + "," + s.lon;
       return '<a class="popup-best-row" href="' + gmapsUrl + '" target="_blank" rel="noopener">' +
-        '<div class="popup-best-name">' + s.name + '</div>' +
+        '<div class="popup-best-name"><span class="popup-best-go" title="Open in Google Maps">📍</span>' + s.name + '</div>' +
         '<div class="popup-best-price">' + fmt(s[priceKey]) + '</div>' +
         badge +
       '</a>';
     }).join("");
 
-    return '<div class="popup-name">Best stations for this spot</div>' + rowsHtml +
+    return '<div class="popup-name">⛽ Best deals nearby</div>' + rowsHtml +
       '<div class="popup-best-assumption">Based on ' + gallons + ' gal @ ' + efficiency + ' mpg — <span class="popup-assumption-link" role="button" tabindex="0">adjust</span></div>';
   }
 
-  function wireAdjustLink() {
+  function isMobileViewport() {
+    return window.matchMedia("(max-width: 640px)").matches;
+  }
+
+  function wireAdjustLink(onClose) {
     const link = document.querySelector(".popup-assumption-link");
     if (!link) return;
     link.addEventListener("click", () => {
@@ -1906,13 +1958,40 @@
         target.closest(".station-cost-inputs").scrollIntoView({ behavior: "smooth", block: "center" });
         target.focus();
       }
-      map.closePopup();
+      onClose();
     });
   }
+
+  // ---- Bottom sheet (mobile): far more room, bigger touch targets, no
+  // cramped tiny popup — same pattern as native map apps. ----
+  function showBottomSheet(html) {
+    document.getElementById("bottomSheetContent").innerHTML = html;
+    document.getElementById("bottomSheet").classList.add("show");
+    document.getElementById("sheetBackdrop").classList.add("show");
+    wireAdjustLink(hideBottomSheet); // innerHTML set above is synchronous, safe to wire immediately
+  }
+  function hideBottomSheet() {
+    document.getElementById("bottomSheet").classList.remove("show");
+    document.getElementById("sheetBackdrop").classList.remove("show");
+  }
+  function isBottomSheetOpen() {
+    return document.getElementById("bottomSheet").classList.contains("show");
+  }
+  document.getElementById("bottomSheetClose").addEventListener("click", hideBottomSheet);
+  document.getElementById("sheetBackdrop").addEventListener("click", hideBottomSheet);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isBottomSheetOpen()) hideBottomSheet();
+  });
 
   function showBestStationsPopup() {
     const html = buildBestStationsHtml();
     if (!html) return;
+
+    if (isMobileViewport()) {
+      showBottomSheet(html);
+      return;
+    }
+
     userMarker.bindPopup(html, { maxWidth: 240 });
     // Registered BEFORE openPopup() below, since openPopup() fires this
     // event on the map synchronously — a listener added after would miss it
@@ -1920,24 +1999,53 @@
     // before wiring the link, since popupopen fires for any popup on the map.
     map.once("popupopen", (e) => {
       if (e.popup !== userMarker.getPopup()) return;
-      wireAdjustLink();
+      wireAdjustLink(() => map.closePopup());
     });
     userMarker.openPopup();
   }
 
   function refreshBestStationsPopupIfOpen() {
-    // Only refresh if a popup is already open — adjusting these inputs
+    // Only refresh if something is already open — adjusting these inputs
     // shouldn't pop it open uninvited if the person closed it deliberately.
-    // Updates content in place (setContent) rather than closing and
-    // reopening — that's synchronous and avoids Leaflet's popup open/close
-    // animation timing getting in the way.
+    if (isBottomSheetOpen()) {
+      const html = buildBestStationsHtml();
+      if (!html) return;
+      document.getElementById("bottomSheetContent").innerHTML = html;
+      wireAdjustLink(hideBottomSheet);
+      return;
+    }
+    // Desktop popup case — updates content in place (setContent) rather than
+    // closing and reopening, which avoids Leaflet's animation timing issues.
     if (!userMarker || !userMarker.isPopupOpen || !userMarker.isPopupOpen()) return;
     const popup = userMarker.getPopup();
     if (!popup) return;
     const html = buildBestStationsHtml();
     if (!html) return;
     popup.setContent(html);
-    wireAdjustLink();
+    wireAdjustLink(() => map.closePopup());
+  }
+
+  function buildStationPopupHtml(s, isCheapest) {
+    let dieselRow = s.hasDiesel === true
+      ? '<div class="popup-row"><span>Diesel</span><strong>' + fmt(s.dieselPrice) + '</strong></div>'
+      : '<div class="popup-row"><span>Diesel</span><span>' + (s.hasDiesel === false ? "—" : "unlisted") + '</span></div>';
+    const gmapsUrl = "https://www.google.com/maps/search/?api=1&query=" + s.lat + "," + s.lon;
+    return '<div class="popup-name">' + s.name + (isCheapest ? ' <span style="color:#2f9e6e;">(Cheapest)</span>' : '') + '</div>' +
+      '<div class="popup-row"><span>Petrol</span><strong>' + fmt(s.petrolPrice) + '</strong></div>' +
+      dieselRow +
+      '<a href="' + gmapsUrl + '" target="_blank" rel="noopener" class="popup-gmaps-link">Open in Google Maps →</a>';
+  }
+
+  // Shared by marker clicks and station-card clicks — on mobile, shows the
+  // same roomy bottom sheet as "Best deals nearby" instead of a cramped
+  // popup; on desktop, keeps the normal Leaflet popup behavior.
+  function openStationInfo(marker) {
+    const html = buildStationPopupHtml(marker.__station, marker.__isCheapest);
+    if (isMobileViewport()) {
+      showBottomSheet(html);
+    } else {
+      marker.bindPopup(html, { maxWidth: 240 }).openPopup();
+    }
   }
 
   function renderMap() {
@@ -1949,15 +2057,11 @@
     currentStations.forEach(s => {
       const isCheapest = s.petrolPrice === cheapestPrice;
       const marker = L.marker([s.lat, s.lon], { icon: priceTagIcon(s, isCheapest) });
-      let dieselRow = s.hasDiesel === true
-        ? '<div class="popup-row"><span>Diesel</span><strong>' + fmt(s.dieselPrice) + '</strong></div>'
-        : '<div class="popup-row"><span>Diesel</span><span>' + (s.hasDiesel === false ? "—" : "unlisted") + '</span></div>';
-      const gmapsUrl = "https://www.google.com/maps/search/?api=1&query=" + s.lat + "," + s.lon;
-      let popupHtml = '<div class="popup-name">' + s.name + (isCheapest ? ' <span style="color:#2f9e6e;">(Cheapest)</span>' : '') + '</div>' +
-        '<div class="popup-row"><span>Petrol</span><strong>' + fmt(s.petrolPrice) + '</strong></div>' +
-        dieselRow +
-        '<a href="' + gmapsUrl + '" target="_blank" rel="noopener" class="popup-gmaps-link">Open in Google Maps →</a>';
-      marker.bindPopup(popupHtml);
+      // Not bound to a popup here — openStationInfo() decides at click time
+      // whether to show a desktop popup or the mobile bottom sheet.
+      marker.__station = s;
+      marker.__isCheapest = isCheapest;
+      marker.on("click", () => openStationInfo(marker));
       markerLayer.addLayer(marker);
       markerIndex[s.lat + "," + s.lon] = marker;
     });
